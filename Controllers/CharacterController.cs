@@ -40,9 +40,38 @@ namespace dotnet_rpg.Controllers
 
         [HttpPost]
         public async Task<ActionResult<ServiceResponse<List<GetCharacterDto>>>> 
-        AddCharacter(AddCharacterDto newCharacter)
+            AddCharacter(AddCharacterDto newCharacter)
         {
             return Ok(await _characterService.AddCharacter(newCharacter));
+        }
+
+
+        [HttpPut]
+        public async Task<ActionResult<ServiceResponse<GetCharacterDto>>> 
+            UpdateCharacter(UpdateCharacterDto updatedCharacter)
+        {
+            var response = await _characterService.UpdateCharacter(updatedCharacter);
+
+            if (response.Data is null) {
+                return NotFound(response);
+            }
+
+            return Ok(response);
+        }
+
+
+        [HttpDelete]
+        public async Task<ActionResult<ServiceResponse<List<GetCharacterDto>>>> 
+            DeleteCharacter(int id)
+        {
+            var response = await _characterService.DeleteCharacter(id);
+
+            // todo check if character not found
+            if (response.Success == false) {
+                return NotFound(response);
+            }
+
+            return Ok(response);
         }
     }
 }
