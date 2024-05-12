@@ -66,7 +66,7 @@ namespace dotnet_rpg.Controllers
         {
             var response = await _characterService.DeleteCharacter(id);
 
-            // todo check if character not found
+            // check if character not found
             if (response.Success == false) {
                 return NotFound(response);
             }
