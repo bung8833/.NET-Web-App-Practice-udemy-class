@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging;
 namespace dotnet_rpg.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("[controller]")]
     public class CharacterController : ControllerBase // controller w/o View
     {
         private readonly ICharacterService _characterService;
@@ -31,10 +31,19 @@ namespace dotnet_rpg.Controllers
 
 
         [HttpGet]
-        [Route("id")]
+        [Route("{id}")]
         public async Task<ActionResult<ServiceResponse<GetCharacterDto>>> GetSingle(int id)
         {
             return Ok(await _characterService.GetCharacterById(id));
+        }
+
+        
+        [HttpGet]
+        [Route("Name/{name}")]
+        public async Task<ActionResult<ServiceResponse<List<GetCharacterDto>>>> 
+            GetCharactersByName(string name)
+        {
+            return Ok(await _characterService.GetCharactersByName(name));
         }
 
 
@@ -61,6 +70,7 @@ namespace dotnet_rpg.Controllers
 
 
         [HttpDelete]
+        [Route("{id}")]
         public async Task<ActionResult<ServiceResponse<List<GetCharacterDto>>>> 
             DeleteCharacter(int id)
         {

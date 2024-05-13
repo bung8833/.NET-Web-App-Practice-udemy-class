@@ -130,5 +130,32 @@ namespace dotnet_rpg.Services.CharacterService
 
             return serviceResponse;
         }
+
+        public async Task<ServiceResponse<List<GetCharacterDto>>> 
+            GetCharactersByName(string name)
+        {
+            var serviceResponse = new ServiceResponse<List<GetCharacterDto>>();
+            var dbCharacters = await _dataContext.Characters
+                .Where(c => c.Name.ToLower().Contains(name.ToLower())).ToListAsync();
+
+            // check if dbCharacters is empty
+            if (dbCharacters.Count == 0) {
+                serviceResponse.Data = null;
+                serviceResponse.Success = false;
+                serviceResponse.Message = $"No characters found with name '{name}'.";
+
+                return serviceResponse;
+            }
+
+            // turn Character type into GetCharacterDto type
+            serviceResponse.Data = dbCharacters
+                .Select(c => _mapper.Map<GetCharacterDto>(c)).ToList();
+            
+            return serviceResponse;
+        }
+        
+        
+
+        
     }
 }
