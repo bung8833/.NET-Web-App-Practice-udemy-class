@@ -19,7 +19,8 @@ namespace dotnet_rpg.Controllers
 
         [HttpPost]
         [Route("Register")]
-        public async Task<ActionResult<ServiceResponse<int>>> Register(UserRegisterDto request)
+        public async Task<ActionResult<ServiceResponse<int>>> 
+            Register(UserRegisterDto request)
         {
             // Create a new User entity, and set its properties
             User user = new()
