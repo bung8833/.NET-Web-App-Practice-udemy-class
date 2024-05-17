@@ -13,19 +13,42 @@ namespace dotnet_rpg.Services
             _dataContext = dataContext;
         }
 
-        public Task<ServiceResponse<string>> Login(string username, string password)
+
+        public async Task<ServiceResponse<string>> Login(string username, string password)
         {
-            throw new NotImplementedException();
+            ServiceResponse<string> response = new();
+            // Check if a user with the same username already exists
+            var dbUser = await QueryExistingUser(username);
+            if (dbUser is null)
+            {
+                response.Success = false;
+                response.Message = $"User '{username}' not found.";
+            }
+            // check if the password is correct
+            else if (!VerifyPasswordHash(password, dbUser.PasswordHash, dbUser.PasswordSalt))
+            {
+                response.Success = false;
+                response.Message = "Wrong password.";
+            }
+            else
+            {
+                response.Data = dbUser.Id.ToString();
+                response.Message = $"{dbUser.Username} logged in successfully.";
+            }
+
+            return response;
         }
+
 
         public async Task<ServiceResponse<int>> Register(User user, string password)
         {
             ServiceResponse<int> response = new();
-
-            if (await UserAlreadyExists(user.Username) == true)
+            // Check if a user with the same username already exists
+            var existingUser = await QueryExistingUser(user.Username);
+            if (existingUser is not null)
             {
                 response.Success = false;
-                response.Message = $"User with username '{user.Username}' already exists." +
+                response.Message = $"User with username '{existingUser.Username}' already exists." +
                                    $"/r/nPlease try again with another username.";
                 return response;
             }
@@ -38,21 +61,29 @@ namespace dotnet_rpg.Services
             await _dataContext.SaveChangesAsync();
             // When adding the user to the database, 
             // the Id will be generated automatically
-
             response.Data = user.Id;
-            response.Message = $"User registered successfully with Id '{user.Id}'.";
+            response.Message = $"'{user.Username}' registered successfully with Id '{user.Id}'.";
 
             return response;
         }
 
-        public async Task<bool> UserAlreadyExists(string username)
+
+        /// <summary>
+        /// Check if a user with the given username already exists.
+        /// </summary>
+        /// <param name="username"></param>
+        /// <returns>
+        /// A User entity that represents the existing user with the given username;
+        /// if no such user, returns null.
+        /// </returns>
+        public async Task<User?> QueryExistingUser(string username)
         {
-            if (await _dataContext.Users.AnyAsync(u => u.Username.ToLower() == username.ToLower()))
-            {
-                return true;
-            }
-            return false;
+            var dbUser = await _dataContext.Users
+                .FirstOrDefaultAsync(u => u.Username.ToLower() == username.ToLower());
+
+            return dbUser;
         }
+
 
         private void CreatePasswordHash(string password, out byte[] passwordHash, out byte[] passwordSalt)
         {
@@ -62,6 +93,7 @@ namespace dotnet_rpg.Services
                 passwordHash = hmac.ComputeHash(System.Text.Encoding.UTF8.GetBytes(password));
             }
         }
+
 
         private bool VerifyPasswordHash(string password, byte[] passwordHash, byte[] passwordSalt) 
         {

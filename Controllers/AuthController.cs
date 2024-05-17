@@ -31,7 +31,24 @@ namespace dotnet_rpg.Controllers
             var response = await _authService.Register(user, request.Password);
             // check if the response is successful, 
             // i.e., if no other user with the same username exists
-            if (response.Success == false)
+            if (!response.Success)
+            {
+                return BadRequest(response);
+            }
+
+            return Ok(response);
+        }
+
+
+        [HttpPost]
+        [Route("Login")]
+        public async Task<ActionResult<ServiceResponse<int>>> 
+            Login(UserLoginDto request)
+        {
+            var response = await _authService.Login(request.Username, request.Password);
+            // check if the response is successful, 
+            // i.e., if username & password are correct
+            if (!response.Success)
             {
                 return BadRequest(response);
             }
