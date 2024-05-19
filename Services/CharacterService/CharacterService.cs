@@ -21,24 +21,7 @@ namespace dotnet_rpg.Services.CharacterService
             _characterRepo = characterRepo;
         }
 
-        public async Task<ServiceResponse<List<GetCharacterDto>>> 
-            AddCharacter(AddCharacterDto newCharacter)
-        {
-            var serviceResponse = new ServiceResponse<List<GetCharacterDto>>();
-
-            // turn AddCharacterDto type into Character type
-            var character = _mapper.Map<Character>(newCharacter);
-
-            _dataContext.Characters.Add(character);
-            // save the changes
-            await _dataContext.SaveChangesAsync();
-
-            // turn Character type into GetCharacterDto type
-            serviceResponse.Data = await _dataContext.Characters
-                .Select(c => _mapper.Map<GetCharacterDto>(c)).ToListAsync();
-            return serviceResponse;
-        }
-
+        
         public async Task<ServiceResponse<List<GetCharacterDto>>> GetAllCharacters()
         {
             var serviceResponse = new ServiceResponse<List<GetCharacterDto>>();
@@ -49,6 +32,7 @@ namespace dotnet_rpg.Services.CharacterService
                 .Select(c => _mapper.Map<GetCharacterDto>(c)).ToList();
             return serviceResponse;
         }
+
 
         public async Task<ServiceResponse<GetCharacterDto>> 
             GetCharacterById(int id)
@@ -69,6 +53,44 @@ namespace dotnet_rpg.Services.CharacterService
             serviceResponse.Data = _mapper.Map<GetCharacterDto>(dbCharacter);
             return serviceResponse;
         }
+
+
+        public async Task<ServiceResponse<List<GetCharacterDto>>> 
+            GetCharactersByName(string name)
+        {
+            var serviceResponse = new ServiceResponse<List<GetCharacterDto>>();
+            var dbCharacters = await _dataContext.Characters
+                .Where(c => c.Name.ToLower().Contains(name.ToLower())).ToListAsync();
+
+            // check if dbCharacters is empty
+            if (dbCharacters.Count == 0) {
+                serviceResponse.Data = null;
+                serviceResponse.Success = false;
+                serviceResponse.Message = $"No characters found with name '{name}'.";
+
+                return serviceResponse;
+            }
+
+            // turn Character type into GetCharacterDto type
+            serviceResponse.Data = dbCharacters
+                .Select(c => _mapper.Map<GetCharacterDto>(c)).ToList();
+            
+            return serviceResponse;
+        }
+
+
+        public async Task<ServiceResponse<List<GetCharacterDto>>> 
+            AddCharacter(AddCharacterDto newCharacter)
+        {
+            var serviceResponse = new ServiceResponse<List<GetCharacterDto>>();
+            await _characterRepo.AddCharacter(newCharacter);
+
+            // turn Character type into GetCharacterDto type
+            serviceResponse.Data = await _dataContext.Characters
+                .Select(c => _mapper.Map<GetCharacterDto>(c)).ToListAsync();
+            return serviceResponse;
+        }
+
 
         public async Task<ServiceResponse<GetCharacterDto>> 
             UpdateCharacter(UpdateCharacterDto updateDto)
@@ -94,6 +116,7 @@ namespace dotnet_rpg.Services.CharacterService
 
             return serviceResponse;
         }
+
 
         public async Task<ServiceResponse<List<GetCharacterDto>>> 
             DeleteCharacter(int id)
@@ -121,29 +144,6 @@ namespace dotnet_rpg.Services.CharacterService
                 .Select(c => _mapper.Map<GetCharacterDto>(c)).ToListAsync();
             serviceResponse.Message = $"Successfully deleted Character with Id '{id}'.";
 
-            return serviceResponse;
-        }
-
-        public async Task<ServiceResponse<List<GetCharacterDto>>> 
-            GetCharactersByName(string name)
-        {
-            var serviceResponse = new ServiceResponse<List<GetCharacterDto>>();
-            var dbCharacters = await _dataContext.Characters
-                .Where(c => c.Name.ToLower().Contains(name.ToLower())).ToListAsync();
-
-            // check if dbCharacters is empty
-            if (dbCharacters.Count == 0) {
-                serviceResponse.Data = null;
-                serviceResponse.Success = false;
-                serviceResponse.Message = $"No characters found with name '{name}'.";
-
-                return serviceResponse;
-            }
-
-            // turn Character type into GetCharacterDto type
-            serviceResponse.Data = dbCharacters
-                .Select(c => _mapper.Map<GetCharacterDto>(c)).ToList();
-            
             return serviceResponse;
         }
     }

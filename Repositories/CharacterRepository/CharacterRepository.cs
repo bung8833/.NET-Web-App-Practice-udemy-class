@@ -19,6 +19,28 @@ namespace dotnet_rpg.Repositories.CharacterRepository
 
 
         /// <summary>
+        /// Add the specified character to the database.
+        /// </summary>
+        /// <param name="newCharacter"></param>
+        /// <returns>The id of the new character in the database</returns>
+        public async Task<int> AddCharacter(AddCharacterDto newCharacter)
+        {
+            Character character = new Character() {
+                Name = newCharacter.Name,
+                HitPoints = newCharacter.HitPoints,
+                Strength = newCharacter.Strength,
+                Defense = newCharacter.Defense,
+                Intelligent = newCharacter.Intelligent,
+                Class = newCharacter.Class,
+            };
+
+            var entry = _dataContext.Characters.Add(character);
+            await _dataContext.SaveChangesAsync();
+            return entry.Entity.Id;
+        }
+
+
+        /// <summary>
         /// Update the specified character in the database.
         /// </summary>
         /// <param name="updateDto"></param>
