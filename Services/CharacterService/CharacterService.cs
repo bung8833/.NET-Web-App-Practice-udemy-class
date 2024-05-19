@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using dotnet_rpg.Data;
 using dotnet_rpg.Dtos.Character;
+using dotnet_rpg.Repositories.CharacterRepository;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32.SafeHandles;
@@ -11,11 +12,13 @@ namespace dotnet_rpg.Services.CharacterService
     {
         private readonly IMapper _mapper;
         private readonly DataContext _dataContext;
+        private readonly ICharacterRepository _characterRepo;
 
-        public CharacterService(IMapper mapper, DataContext dataContext)
+        public CharacterService(IMapper mapper, DataContext dataContext, ICharacterRepository characterRepo)
         {
-            _dataContext = dataContext;
             _mapper = mapper;
+            _dataContext = dataContext;
+            _characterRepo = characterRepo;
         }
 
         public async Task<ServiceResponse<List<GetCharacterDto>>> 
@@ -68,35 +71,25 @@ namespace dotnet_rpg.Services.CharacterService
         }
 
         public async Task<ServiceResponse<GetCharacterDto>> 
-            UpdateCharacter(UpdateCharacterDto updatedCharacter)
+            UpdateCharacter(UpdateCharacterDto updateDto)
         {
             var serviceResponse = new ServiceResponse<GetCharacterDto>();
-            var dbCharacter = await _dataContext.Characters
-                .FirstOrDefaultAsync(c => c.Id == updatedCharacter.Id);
+            
+            var updatedCharacter = await _characterRepo.UpdateCharacter(updateDto);
 
-            // check if dbCharacter is null
-            if (dbCharacter is null) {
+            // check if updated successfully
+            if (updatedCharacter is null) {
                 serviceResponse.Data = null;
                 serviceResponse.Success = false;
                 serviceResponse.Message 
-                    = $"Character with Id '{updatedCharacter.Id}' not found.";
+                    = $"Character with Id '{updateDto.Id}' not found.";
 
                 return serviceResponse;
             }
 
-            // dbCharacter not null, update it
-            dbCharacter.Name = updatedCharacter.Name;
-            dbCharacter.HitPoints = updatedCharacter.HitPoints;
-            dbCharacter.Strength = updatedCharacter.Strength;
-            dbCharacter.Defense = updatedCharacter.Defense;
-            dbCharacter.Intelligent = updatedCharacter.Intelligent;
-            dbCharacter.Class = updatedCharacter.Class;
-
-            // save the changes
-            await _dataContext.SaveChangesAsync();
-
+            // has updated successfully!
             // turn Character type into GetCharacterDto type
-            serviceResponse.Data = _mapper.Map<GetCharacterDto>(dbCharacter);
+            serviceResponse.Data = _mapper.Map<GetCharacterDto>(updatedCharacter);
             serviceResponse.Message = $"Successfully updated your Character.";
 
             return serviceResponse;
@@ -153,9 +146,5 @@ namespace dotnet_rpg.Services.CharacterService
             
             return serviceResponse;
         }
-        
-        
-
-        
     }
 }

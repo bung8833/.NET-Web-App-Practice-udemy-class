@@ -20,15 +20,9 @@ namespace dotnet_rpg.Controllers
         [HttpPost]
         [Route("Register")]
         public async Task<ActionResult<ServiceResponse<int>>> 
-            Register(UserRegisterDto request)
+            Register(UserRegisterDto request, string password)
         {
-            // Create a new User entity, and set its properties
-            User user = new()
-            {
-                Username = request.Username,
-            };
-
-            var response = await _authService.Register(user, request.Password);
+            var response = await _authService.Register(request, password);
             // check if the response is successful, 
             // i.e., if no other user with the same username exists
             if (!response.Success)

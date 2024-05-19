@@ -1,16 +1,18 @@
-﻿
-using dotnet_rpg.Data;
+﻿using dotnet_rpg.Data;
+using dotnet_rpg.Dtos.User;
+using dotnet_rpg.Repositories.UserRepository;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 namespace dotnet_rpg.Services
 {
     public class AuthService : IAuthService
     {
-        private readonly DataContext _dataContext;
+        private readonly IUserRepository _userRepo;
 
-        public AuthService(DataContext dataContext)
+        public AuthService(IUserRepository userRepo)
         {
-            _dataContext = dataContext;
+            _userRepo = userRepo;
         }
 
 
@@ -18,7 +20,7 @@ namespace dotnet_rpg.Services
         {
             ServiceResponse<string> response = new();
             // Check if a user with the same username already exists
-            var dbUser = await QueryExistingUser(username);
+            var dbUser = await _userRepo.QueryExistingUser(username);
             if (dbUser is null)
             {
                 response.Success = false;
@@ -40,48 +42,50 @@ namespace dotnet_rpg.Services
         }
 
 
-        public async Task<ServiceResponse<int>> Register(User user, string password)
+        public async Task<ServiceResponse<int>> Register(UserRegisterDto userDto, string password)
         {
             ServiceResponse<int> response = new();
+
+            // Check if username is valid
+            if (userDto.Username.IsNullOrEmpty())
+            {
+                response.Success = false;
+                response.Message = $"Username cannot be empty";
+                return response;
+            }
+            // Check if password is valid
+            if (password.IsNullOrEmpty())
+            {
+                response.Success = false;
+                response.Message = $"Password cannot be empty";
+                return response;
+            }
+            
             // Check if a user with the same username already exists
-            var existingUser = await QueryExistingUser(user.Username);
+            var existingUser = await _userRepo.QueryExistingUser(userDto.Username);
             if (existingUser is not null)
             {
                 response.Success = false;
                 response.Message = $"User with username '{existingUser.Username}' already exists." +
-                                   $"/r/nPlease try again with another username.";
+                                   $" Please try again with another username.";
                 return response;
             }
 
+            User user = new()
+            {
+                Username = userDto.Username,
+            };
+
+            // Set user properties and add to database
             CreatePasswordHash(password, out byte[] passwordHash, out byte[] passwordSalt);
             user.PasswordHash = passwordHash;
             user.PasswordSalt = passwordSalt;
 
-            _dataContext.Users.Add(user);
-            await _dataContext.SaveChangesAsync();
-            // When adding the user to the database, 
-            // the Id will be generated automatically
-            response.Data = user.Id;
-            response.Message = $"'{user.Username}' registered successfully with Id '{user.Id}'.";
+            var registeredUser = await _userRepo.AddUser(user);
+            response.Data = registeredUser.Id;
+            response.Message = $"{registeredUser.Username} registered successfully with Id '{registeredUser.Id}'.";
 
             return response;
-        }
-
-
-        /// <summary>
-        /// Check if a user with the given username already exists.
-        /// </summary>
-        /// <param name="username"></param>
-        /// <returns>
-        /// A User entity that represents the existing user with the given username;
-        /// if no such user, returns null.
-        /// </returns>
-        public async Task<User?> QueryExistingUser(string username)
-        {
-            var dbUser = await _dataContext.Users
-                .FirstOrDefaultAsync(u => u.Username.ToLower() == username.ToLower());
-
-            return dbUser;
         }
 
 

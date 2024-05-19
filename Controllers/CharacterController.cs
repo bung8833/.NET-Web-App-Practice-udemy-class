@@ -57,9 +57,9 @@ namespace dotnet_rpg.Controllers
 
         [HttpPut]
         public async Task<ActionResult<ServiceResponse<GetCharacterDto>>> 
-            UpdateCharacter(UpdateCharacterDto updatedCharacter)
+            UpdateCharacter(UpdateCharacterDto updateDto)
         {
-            var response = await _characterService.UpdateCharacter(updatedCharacter);
+            var response = await _characterService.UpdateCharacter(updateDto);
 
             if (response.Data is null) {
                 return NotFound(response);
