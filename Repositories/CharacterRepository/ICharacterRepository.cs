@@ -10,5 +10,6 @@ namespace dotnet_rpg.Repositories.CharacterRepository
     {
         Task<int> AddCharacter(AddCharacterDto newCharacter);
         Task<Character?> UpdateCharacter(UpdateCharacterDto updateDto);
+        Task<bool> DeleteCharacter(int id);
     }
 }

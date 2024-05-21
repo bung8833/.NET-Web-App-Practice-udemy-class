@@ -61,5 +61,21 @@ namespace dotnet_rpg.Repositories.CharacterRepository
             await _dataContext.SaveChangesAsync();
             return dbCharacter;
         }
+
+
+        /// <summary>
+        /// Delete the character with the specified id from the database.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns>true if character successfully deleted</returns>
+        public async Task<bool> DeleteCharacter(int id)
+        {
+            var dbCharacter = await _dataContext.Characters.FirstOrDefaultAsync(c => c.Id == id);
+            if (dbCharacter is null) return false;
+
+            _dataContext.Characters.Remove(dbCharacter);
+            await _dataContext.SaveChangesAsync();
+            return true;
+        }
     }
 }

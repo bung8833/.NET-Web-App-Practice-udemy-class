@@ -122,10 +122,9 @@ namespace dotnet_rpg.Services.CharacterService
             DeleteCharacter(int id)
         {
             var serviceResponse = new ServiceResponse<List<GetCharacterDto>>();
-            var dbCharacter = await _dataContext.Characters.FirstOrDefaultAsync(c => c.Id == id);
-
-            // check if dbCharacter is null
-            if (dbCharacter is null) {
+            
+            if (await _characterRepo.DeleteCharacter(id) == false){
+                // character not found
                 serviceResponse.Data = await _dataContext.Characters
                     .Select(c => _mapper.Map<GetCharacterDto>(c)).ToListAsync();
                 serviceResponse.Success = false;
@@ -134,12 +133,7 @@ namespace dotnet_rpg.Services.CharacterService
                 return serviceResponse;
             }
 
-            // dbCharacter not null, delete it
-            _dataContext.Characters.Remove(dbCharacter);
-
-            // save the changes
-            await _dataContext.SaveChangesAsync();
-
+            // character deleted successfully!
             serviceResponse.Data = await _dataContext.Characters
                 .Select(c => _mapper.Map<GetCharacterDto>(c)).ToListAsync();
             serviceResponse.Message = $"Successfully deleted Character with Id '{id}'.";
