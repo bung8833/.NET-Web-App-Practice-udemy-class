@@ -8,7 +8,8 @@ namespace dotnet_rpg.Repositories.CharacterRepository
 {
     public interface ICharacterRepository
     {
-        Task<int> AddCharacter(AddCharacterDto newCharacter);
+        Task<List<Character>> GetCharactersByUserId(int userId);
+        Task<int> AddCharacter(Character newCharacter);
         Task<Character?> UpdateCharacter(UpdateCharacterDto updateDto);
         Task<bool> DeleteCharacter(int id);
     }

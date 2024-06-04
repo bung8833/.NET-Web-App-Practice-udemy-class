@@ -18,23 +18,21 @@ namespace dotnet_rpg.Repositories.CharacterRepository
         }
 
 
+        public async Task<List<Character>> GetCharactersByUserId(int userId)
+        {
+            return await _dataContext.Characters
+                .Where(c => c.User != null && c.User.Id == userId).ToListAsync();
+        }
+
+
         /// <summary>
         /// Add the specified character to the database.
         /// </summary>
         /// <param name="newCharacter"></param>
         /// <returns>The id of the new character in the database</returns>
-        public async Task<int> AddCharacter(AddCharacterDto newCharacter)
+        public async Task<int> AddCharacter(Character newCharacter)
         {
-            Character character = new Character() {
-                Name = newCharacter.Name,
-                HitPoints = newCharacter.HitPoints,
-                Strength = newCharacter.Strength,
-                Defense = newCharacter.Defense,
-                Intelligent = newCharacter.Intelligent,
-                Class = newCharacter.Class,
-            };
-
-            var entry = _dataContext.Characters.Add(character);
+            var entry = _dataContext.Characters.Add(newCharacter);
             await _dataContext.SaveChangesAsync();
             return entry.Entity.Id;
         }
