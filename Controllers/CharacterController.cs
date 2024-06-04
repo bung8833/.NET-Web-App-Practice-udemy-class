@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using dotnet_rpg.Dtos.Character;
 using dotnet_rpg.Services.CharacterService;
@@ -28,7 +29,8 @@ namespace dotnet_rpg.Controllers
         [Route("GetAll")] // More than one Get function
         public async Task<ActionResult<ServiceResponse<List<GetCharacterDto>>>> Get() 
         {
-            return Ok(await _characterService.GetAllCharacters());
+            // Return characters that belong to the current user
+            return Ok(await _characterService.GetYourCharacters());
         }
 
 
@@ -36,7 +38,7 @@ namespace dotnet_rpg.Controllers
         [Route("{id}")]
         public async Task<ActionResult<ServiceResponse<GetCharacterDto>>> GetSingle(int id)
         {
-            return Ok(await _characterService.GetCharacterById(id));
+            return Ok(await _characterService.GetYourCharacterById(id));
         }
 
         
@@ -45,15 +47,15 @@ namespace dotnet_rpg.Controllers
         public async Task<ActionResult<ServiceResponse<List<GetCharacterDto>>>> 
             GetCharactersByName(string name)
         {
-            return Ok(await _characterService.GetCharactersByName(name));
+            return Ok(await _characterService.GetYourCharactersByName(name));
         }
 
 
         [HttpPost]
         public async Task<ActionResult<ServiceResponse<List<GetCharacterDto>>>> 
-            AddCharacter(AddCharacterDto newCharacter)
+            AddCharacter(AddCharacterDto addDto)
         {
-            return Ok(await _characterService.AddCharacter(newCharacter));
+            return Ok(await _characterService.AddCharacter(addDto));
         }
 
 
@@ -61,7 +63,7 @@ namespace dotnet_rpg.Controllers
         public async Task<ActionResult<ServiceResponse<GetCharacterDto>>> 
             UpdateCharacter(UpdateCharacterDto updateDto)
         {
-            var response = await _characterService.UpdateCharacter(updateDto);
+            var response = await _characterService.UpdateYourCharacter(updateDto);
 
             if (response.Data is null) {
                 return NotFound(response);
@@ -76,7 +78,7 @@ namespace dotnet_rpg.Controllers
         public async Task<ActionResult<ServiceResponse<List<GetCharacterDto>>>> 
             DeleteCharacter(int id)
         {
-            var response = await _characterService.DeleteCharacter(id);
+            var response = await _characterService.DeleteYourCharacter(id);
 
             // check if character not found
             if (response.Success == false) {
