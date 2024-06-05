@@ -3,6 +3,7 @@ using AutoMapper;
 using dotnet_rpg.Data;
 using dotnet_rpg.Dtos.Character;
 using dotnet_rpg.Repositories.CharacterRepository;
+using dotnetrpg.Migrations;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32.SafeHandles;
@@ -50,6 +51,8 @@ namespace dotnet_rpg.Services.CharacterService
         {
             var serviceResponse = new ServiceResponse<GetCharacterDto>();
             var dbCharacter = await _dataContext.Characters
+                .Include(c => c.Weapon)
+                .Include(c => c.Skills)
                 .FirstOrDefaultAsync(c => c.Id == id && c.User != null && c.User.Id == GetCurrentUserId());
 
             // check if dbCharacter is null
@@ -162,6 +165,52 @@ namespace dotnet_rpg.Services.CharacterService
             serviceResponse.Message = $"Successfully deleted Character with Id '{id}'.";
 
             return serviceResponse;
+        }
+
+        public async Task<ServiceResponse<GetCharacterDto>> AddCharaterSkill(AddCharacterSkillDto addSkillDto)
+        {
+            var response = new ServiceResponse<GetCharacterDto>();
+
+            try
+            {
+                // Check if the character exists && user is logged in
+                var character = await _dataContext.Characters
+                    .Include(c => c.Weapon)
+                    .Include(c => c.Skills)
+                    .FirstOrDefaultAsync(c => c.Id == addSkillDto.CharacterId
+                                         && c.User != null && c.User.Id == GetCurrentUserId());
+                if (character is null)
+                {
+                    response.Success = false;
+                    response.Message = $"Character with Id '{addSkillDto.CharacterId}' not found.";
+                    return response;
+                }
+
+                // Check if the skill exists
+                var skill = await _dataContext.Skills
+                    .FirstOrDefaultAsync(s => s.Id == addSkillDto.SkillId);
+                if (skill is null)
+                {
+                    response.Success = false;
+                    response.Message = $"Skill with Id '{addSkillDto.SkillId}' not found.";
+                    return response;
+                }
+
+                // Check if the character already has the skill
+
+
+                // Add the skill to the character
+                character.Skills!.Add(skill);
+                await _dataContext.SaveChangesAsync();
+                response.Data = _mapper.Map<GetCharacterDto>(character);
+            }
+            catch (Exception ex)
+            {
+                response.Success = false;
+                response.Message = ex.Message;
+            }
+
+            return response;
         }
     }
 }

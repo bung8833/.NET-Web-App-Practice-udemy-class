@@ -21,6 +21,8 @@ namespace dotnet_rpg.Repositories.CharacterRepository
         public async Task<List<Character>> GetCharactersByUserId(int userId)
         {
             return await _dataContext.Characters
+                .Include(c => c.Weapon)
+                .Include(c => c.Skills)
                 .Where(c => c.User != null && c.User.Id == userId).ToListAsync();
         }
 

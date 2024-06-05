@@ -32,12 +32,15 @@ namespace dotnet_rpg.Services.WeaponService
             {
                 // Check if the character exists && the user is logged in
                 var character = await _dataContext.Characters
+                    .Include(c => c.Skills)
                     .FirstOrDefaultAsync(c => c.Id == addDto.CharacterId
                                          && c.User != null && c.User.Id == GetCurrentUserId());
 
                 if (character is null)
                 {
-                    throw new Exception("Character not found.");
+                    response.Success = false;
+                    response.Message = "Character not found.";
+                    return response;
                 }
 
                 // Create the weapon entity
