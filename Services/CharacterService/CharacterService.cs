@@ -24,8 +24,7 @@ namespace dotnet_rpg.Services.CharacterService
             _characterRepo = characterRepo;
         }
 
-
-        private int GetUserId() => int.Parse(_httpContextAccessor.HttpContext!.User
+        private int GetCurrentUserId() => int.Parse(_httpContextAccessor.HttpContext!.User
             .FindFirstValue(ClaimTypes.NameIdentifier)!);
 
 
@@ -37,7 +36,7 @@ namespace dotnet_rpg.Services.CharacterService
         public async Task<ServiceResponse<List<GetCharacterDto>>> GetYourCharacters()
         {
             var serviceResponse = new ServiceResponse<List<GetCharacterDto>>();
-            var dbCharacters = await _characterRepo.GetCharactersByUserId(GetUserId());
+            var dbCharacters = await _characterRepo.GetCharactersByUserId(GetCurrentUserId());
 
             // turn Character type into GetCharacterDto type
             serviceResponse.Data = dbCharacters
@@ -51,7 +50,7 @@ namespace dotnet_rpg.Services.CharacterService
         {
             var serviceResponse = new ServiceResponse<GetCharacterDto>();
             var dbCharacter = await _dataContext.Characters
-                .FirstOrDefaultAsync(c => c.Id == id && c.User != null && c.User.Id == GetUserId());
+                .FirstOrDefaultAsync(c => c.Id == id && c.User != null && c.User.Id == GetCurrentUserId());
 
             // check if dbCharacter is null
             if (dbCharacter is null) {
@@ -74,7 +73,7 @@ namespace dotnet_rpg.Services.CharacterService
             var serviceResponse = new ServiceResponse<List<GetCharacterDto>>();
             var dbCharacters = await _dataContext.Characters
                 .Where(c => c.Name.ToLower().Contains(name.ToLower()) 
-                            && c.User != null && c.User.Id == GetUserId())
+                            && c.User != null && c.User.Id == GetCurrentUserId())
                 .ToListAsync();
 
             // check if dbCharacters is empty
@@ -100,13 +99,13 @@ namespace dotnet_rpg.Services.CharacterService
             var serviceResponse = new ServiceResponse<List<GetCharacterDto>>();
             // Set the user of the new character to current user
             var newCharacter = _mapper.Map<Character>(addDto);
-            newCharacter.User = await _dataContext.Users.FirstOrDefaultAsync(u => u.Id == GetUserId());
+            newCharacter.User = await _dataContext.Users.FirstOrDefaultAsync(u => u.Id == GetCurrentUserId());
             
             await _characterRepo.AddCharacter(newCharacter);
 
             // return all characters that belong to the user
             serviceResponse.Data = await _dataContext.Characters
-                .Where(c => c.User != null && c.User.Id == GetUserId())
+                .Where(c => c.User != null && c.User.Id == GetCurrentUserId())
                 .Select(c => _mapper.Map<GetCharacterDto>(c)).ToListAsync();
             return serviceResponse;
         }
@@ -118,11 +117,11 @@ namespace dotnet_rpg.Services.CharacterService
             var serviceResponse = new ServiceResponse<GetCharacterDto>();
             
             var character = await _dataContext.Characters
-                .Include(c => c.User)
+                .Include(c => c.User) // 之後沒有context，所以要include user
                 .FirstOrDefaultAsync(c => c.Id == updateDto.Id /*&& c.User != null && c.User.Id == GetUserId()*/);
 
-            // check if updated successfully
-            if (character is null || character.User!.Id != GetUserId()) {
+            // Check if the character exists && the user is logged in
+            if (character is null || character.User!.Id != GetCurrentUserId()) {
                 serviceResponse.Data = null;
                 serviceResponse.Success = false;
                 serviceResponse.Message 
@@ -146,7 +145,7 @@ namespace dotnet_rpg.Services.CharacterService
         {
             var serviceResponse = new ServiceResponse<List<GetCharacterDto>>();
             var character = await _dataContext.Characters
-                .FirstOrDefaultAsync(c => c.Id == id && c.User != null && c.User.Id == GetUserId());
+                .FirstOrDefaultAsync(c => c.Id == id && c.User != null && c.User.Id == GetCurrentUserId());
 
             if (character is null){
                 // character not found or does not belong to user
@@ -158,7 +157,7 @@ namespace dotnet_rpg.Services.CharacterService
             await _characterRepo.DeleteCharacter(id);
 
             serviceResponse.Data = await _dataContext.Characters
-                .Where(c => c.User != null && c.User.Id == GetUserId())
+                .Where(c => c.User != null && c.User.Id == GetCurrentUserId())
                 .Select(c => _mapper.Map<GetCharacterDto>(c)).ToListAsync();
             serviceResponse.Message = $"Successfully deleted Character with Id '{id}'.";
 
