@@ -77,6 +77,8 @@ namespace dotnet_rpg.Services.CharacterService
             var dbCharacters = await _dataContext.Characters
                 .Where(c => c.Name.ToLower().Contains(name.ToLower()) 
                             && c.User != null && c.User.Id == GetCurrentUserId())
+                .Include(c => c.Weapon)
+                .Include(c => c.Skills)
                 .ToListAsync();
 
             // check if dbCharacters is empty
@@ -109,6 +111,8 @@ namespace dotnet_rpg.Services.CharacterService
             // return all characters that belong to the user
             serviceResponse.Data = await _dataContext.Characters
                 .Where(c => c.User != null && c.User.Id == GetCurrentUserId())
+                .Include(c => c.Weapon)
+                .Include(c => c.Skills)
                 .Select(c => _mapper.Map<GetCharacterDto>(c)).ToListAsync();
             return serviceResponse;
         }
@@ -120,11 +124,14 @@ namespace dotnet_rpg.Services.CharacterService
             var serviceResponse = new ServiceResponse<GetCharacterDto>();
             
             var character = await _dataContext.Characters
-                .Include(c => c.User) // 之後沒有context，所以要include user
-                .FirstOrDefaultAsync(c => c.Id == updateDto.Id /*&& c.User != null && c.User.Id == GetUserId()*/);
+                // 之後沒有context，所以要include必要資訊
+                .Include(c => c.User)
+                .Include(c => c.Weapon)
+                .Include(c => c.Skills)
+                .FirstOrDefaultAsync(c => c.Id == updateDto.Id);
 
             // Check if the character exists && the user is logged in
-            if (character is null || character.User!.Id != GetCurrentUserId()) {
+            if (character is null || character.User is null || character.User.Id != GetCurrentUserId()) {
                 serviceResponse.Data = null;
                 serviceResponse.Success = false;
                 serviceResponse.Message 
@@ -161,6 +168,8 @@ namespace dotnet_rpg.Services.CharacterService
 
             serviceResponse.Data = await _dataContext.Characters
                 .Where(c => c.User != null && c.User.Id == GetCurrentUserId())
+                .Include(c => c.Weapon)
+                .Include(c => c.Skills)
                 .Select(c => _mapper.Map<GetCharacterDto>(c)).ToListAsync();
             serviceResponse.Message = $"Successfully deleted Character with Id '{id}'.";
 
@@ -186,7 +195,7 @@ namespace dotnet_rpg.Services.CharacterService
                     return response;
                 }
 
-                // Check if the skill exists
+                // Check if the skill is valid
                 var skill = await _dataContext.Skills
                     .FirstOrDefaultAsync(s => s.Id == addSkillDto.SkillId);
                 if (skill is null)
@@ -197,12 +206,18 @@ namespace dotnet_rpg.Services.CharacterService
                 }
 
                 // Check if the character already has the skill
-
+                if (character.Skills!.Any(s => s.Id == addSkillDto.SkillId))
+                {
+                    response.Success = false;
+                    response.Message = $"Character already has the skill '{skill.Name}'.";
+                    return response;
+                }
 
                 // Add the skill to the character
                 character.Skills!.Add(skill);
                 await _dataContext.SaveChangesAsync();
                 response.Data = _mapper.Map<GetCharacterDto>(character);
+                response.Message = $"Successfully added skill '{skill.Name}' to Character.";
             }
             catch (Exception ex)
             {

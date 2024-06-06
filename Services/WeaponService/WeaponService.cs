@@ -3,6 +3,7 @@ using dotnet_rpg.Data;
 using dotnet_rpg.Dtos.Character;
 using dotnet_rpg.Dtos.Weapon;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.VisualBasic;
 using System.Security.Claims;
 
 namespace dotnet_rpg.Services.WeaponService
@@ -32,6 +33,7 @@ namespace dotnet_rpg.Services.WeaponService
             {
                 // Check if the character exists && the user is logged in
                 var character = await _dataContext.Characters
+                    .Include(c => c.Weapon)
                     .Include(c => c.Skills)
                     .FirstOrDefaultAsync(c => c.Id == addDto.CharacterId
                                          && c.User != null && c.User.Id == GetCurrentUserId());
@@ -40,6 +42,14 @@ namespace dotnet_rpg.Services.WeaponService
                 {
                     response.Success = false;
                     response.Message = "Character not found.";
+                    return response;
+                }
+
+                // Check if the Character already has a Weapon
+                if (character.Weapon != null)
+                {
+                    response.Success = false;
+                    response.Message = $"Character already has the weapon '{character.Weapon.Name}'.";
                     return response;
                 }
 
@@ -55,6 +65,7 @@ namespace dotnet_rpg.Services.WeaponService
                 await _dataContext.SaveChangesAsync();
 
                 response.Data = _mapper.Map<GetCharacterDto>(character);
+                response.Message = $"Successfully added Weapon '{weapon.Name}' to the character.";
             }
             catch (Exception ex)
             {

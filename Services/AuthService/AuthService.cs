@@ -23,12 +23,27 @@ namespace dotnet_rpg.Services
         public async Task<ServiceResponse<string>> Login(string username, string password)
         {
             ServiceResponse<string> response = new();
+            // Check if username is valid
+            if (username.IsNullOrEmpty())
+            {
+                response.Success = false;
+                response.Message = $"Username cannot be empty";
+                return response;
+            }
+            // Check if password is valid
+            if (password.IsNullOrEmpty())
+            {
+                response.Success = false;
+                response.Message = $"Password cannot be empty";
+                return response;
+            }
+
             // Check if a user with the same username already exists
             var dbUser = await _userRepo.QueryExistingUser(username);
             if (dbUser is null)
             {
                 response.Success = false;
-                response.Message = $"User '{username}' not found.";
+                response.Message = $"'{username}' not found. Please register first.";
             }
             // check if the password is correct
             else if (!VerifyPasswordHash(password, dbUser.PasswordHash, dbUser.PasswordSalt))
@@ -49,7 +64,6 @@ namespace dotnet_rpg.Services
         public async Task<ServiceResponse<int>> Register(UserRegisterDto userDto, string password)
         {
             ServiceResponse<int> response = new();
-
             // Check if username is valid
             if (userDto.Username.IsNullOrEmpty())
             {
@@ -70,8 +84,8 @@ namespace dotnet_rpg.Services
             if (existingUser is not null)
             {
                 response.Success = false;
-                response.Message = $"User with username '{existingUser.Username}' already exists." +
-                                   $" Please try again with another username.";
+                response.Message = $"User '{existingUser.Username}' already exists." +
+                                   $" Try again with a different one.";
                 return response;
             }
 
@@ -141,6 +155,5 @@ namespace dotnet_rpg.Services
 
             return tokenHandler.WriteToken(token);
         }
-        
     }
 }
