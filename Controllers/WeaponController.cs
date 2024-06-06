@@ -20,7 +20,7 @@ namespace dotnet_rpg.Controllers
 
 
         [HttpGet]
-        public async Task<ActionResult<List<GetWeaponDto>>> GetWeapons() 
+        public async Task<ActionResult<List<GetWeaponAndCharacterDto>>> GetWeapons() 
         {
             return Ok(await _weaponService.GetYourWeapons());
         }

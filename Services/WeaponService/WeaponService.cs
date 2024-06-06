@@ -25,15 +25,21 @@ namespace dotnet_rpg.Services.WeaponService
             .FindFirstValue(ClaimTypes.NameIdentifier)!);
 
 
-        public async Task<ServiceResponse<List<GetWeaponDto>>> GetYourWeapons()
+        public async Task<ServiceResponse<List<GetWeaponAndCharacterDto>>> GetYourWeapons()
         {
-            var response = new ServiceResponse<List<GetWeaponDto>>();
+            var response = new ServiceResponse<List<GetWeaponAndCharacterDto>>();
 
             var weapons = _dataContext.Weapons
                 .Include(w => w.Character).ThenInclude(c => c!.User)
                 .Where(w => w.Character!.User!.Id == GetCurrentUserId());
             
-            response.Data = await weapons.Select(w => _mapper.Map<GetWeaponDto>(w)).ToListAsync();
+            response.Data = await weapons.Select(w => new GetWeaponAndCharacterDto() {
+                Name = w.Name,
+                Damage = w.Damage,
+                CharacterId = w.Character.Id,
+                Character = w.Character.Name
+            }).ToListAsync();
+            
             return response;
         }
 
