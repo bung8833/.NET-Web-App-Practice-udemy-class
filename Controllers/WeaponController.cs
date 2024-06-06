@@ -18,11 +18,35 @@ namespace dotnet_rpg.Controllers
             _weaponService = weaponService;
         }
 
+
+        [HttpGet]
+        public async Task<ActionResult<List<GetWeaponDto>>> GetWeapons() 
+        {
+            return Ok(await _weaponService.GetYourWeapons());
+        }
+
+
         [HttpPost]
         public async Task<ActionResult<ServiceResponse<GetCharacterDto>>> 
             AddWeapon(AddWeaponDto addDto)
         {
             return Ok(await _weaponService.AddWeapon(addDto));
+        }
+
+
+        [HttpPut]
+        public async Task<ActionResult<ServiceResponse<GetCharacterDto>>> 
+            UpdateWeapon(UpdateWeaponDto updateDto)
+        {
+            return Ok(await _weaponService.UpdateWeapon(updateDto));
+        }
+
+
+        [HttpDelete]
+        public async Task<ActionResult<ServiceResponse<GetCharacterDto>>> 
+            DeleteWeapon(int characterId)
+        {
+            return Ok(await _weaponService.DeleteWeapon(characterId));
         }
     }
 }

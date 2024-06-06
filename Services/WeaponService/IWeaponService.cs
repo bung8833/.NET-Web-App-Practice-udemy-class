@@ -5,6 +5,9 @@ namespace dotnet_rpg.Services.WeaponService
 {
     public interface IWeaponService
     {
+        Task<ServiceResponse<List<GetWeaponDto>>> GetYourWeapons();
         Task<ServiceResponse<GetCharacterDto>> AddWeapon(AddWeaponDto addDto);
+        Task<ServiceResponse<GetCharacterDto>> UpdateWeapon(UpdateWeaponDto updateDto);
+        Task<ServiceResponse<GetCharacterDto>> DeleteWeapon(int characterId);
     }
 }
