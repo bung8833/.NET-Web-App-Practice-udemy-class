@@ -81,7 +81,7 @@ namespace dotnet_rpg.Services.FightService
                         else if (attacker.Skills != null && attacker.Skills.Any())
                         {
                             // skill attack
-                            var skill = attacker.Skills[new Random().Next(attacker.Skills.Count)];
+                            Skill skill = GetRandomSkill(attacker.Skills);
 
                             attackUsed = skill.Name;
                             damage = DoSkillAttack(attacker, opponent, skill);
@@ -288,9 +288,22 @@ namespace dotnet_rpg.Services.FightService
         {
             // calculate damage
             int damage = attacker.Weapon.Damage * attacker.Strength / opponent.Defense;
+            
+            // defense and counter-attack by chance
+            bool counterAttack = false;
+            if (opponent.Strength > attacker.Strength) 
+            {
+                int diff = opponent.Strength - attacker.Strength;
+                counterAttack = new Random().Next(opponent.Strength) < diff;
+            }
+
+            damage = counterAttack ? -damage : damage;
+            
             // do damage
             if (damage > 0)
                 opponent.HitPoints -= damage;
+            if (damage < 0)
+                attacker.HitPoints += damage;
             return damage;
         }
 
@@ -299,10 +312,42 @@ namespace dotnet_rpg.Services.FightService
         {
             // calculate damage
             int damage = skill.Damage * attacker.Intelligent / opponent.Defense;
+            
+            // defense and counter-attack by chance
+            bool counterAttack = false;
+            if (opponent.Intelligent > attacker.Intelligent) 
+            {
+                int diff = opponent.Intelligent - attacker.Intelligent;
+                counterAttack = new Random().Next(opponent.Intelligent) < diff;
+            }
+
+            damage = counterAttack ? -damage : damage;
+            
             // do damage
             if (damage > 0)
                 opponent.HitPoints -= damage;
+            if (damage < 0)
+                attacker.HitPoints += damage;
             return damage;
+        }
+
+
+        private static Skill GetRandomSkill(List<Skill> skills)
+        {
+            int randomNum = new Random().Next(skills.Sum(s => s.SkillActivationRate));
+            Skill randomSkill = new Skill();
+
+            foreach (var skill in skills)
+            {
+                randomNum -= skill.SkillActivationRate;
+                if (randomNum < 0) 
+                {
+                    // found the skill
+                    randomSkill = skill;
+                    break;
+                }
+            }
+            return randomSkill;
         }
     }
 }
