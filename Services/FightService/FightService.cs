@@ -30,7 +30,7 @@ namespace dotnet_rpg.Services.FightService
                 var characters = await _context.Characters
                     .Include(c => c.Weapon)
                     .Include(c => c.Skills)
-                    .Where(c => request.CharacterIds.Contains(c.Id))
+                    .Where(c => request.GetCharacterIds().Contains(c.Id))
                     .ToListAsync();
                 if (characters.Count < 2)
                 {
@@ -41,7 +41,7 @@ namespace dotnet_rpg.Services.FightService
 
                 int round = 1;
                 bool defeated = false;
-                string gameoverMessage = String.Empty;
+                List<string> gameoverMessage = new List<string>();
 
                 // Characters take turns to attack, until someone is defeated
                 while (!defeated)
@@ -69,50 +69,42 @@ namespace dotnet_rpg.Services.FightService
                         // decide attack type
                         bool useWeapon = new Random().Next(100) < useWeaponRate;
                         // todo refactor this to if-else
-                        if (useWeapon)
+                        if (useWeapon && attacker.Weapon != null)
                         {
-                            if (attacker.Weapon is null) useWeapon = false;
                             // weapon attack
-                            else
-                            {
-                                attackUsed = attacker.Weapon.Name;
-                                damage = DoWeaponAttack(attacker, opponent);
-                            }
+                            attackUsed = attacker.Weapon.Name;
+                            damage = DoWeaponAttack(attacker, opponent);
                         }
-
-                        if (!useWeapon)
+                        else if (attacker.Skills != null && attacker.Skills.Any())
                         {
-                            if (attacker.Skills is null || !attacker.Skills.Any())
+                            // skill attack
+                            var skill = attacker.Skills[new Random().Next(attacker.Skills.Count)];
+
+                            attackUsed = skill.Name;
+                            damage = DoSkillAttack(attacker, opponent, skill);
+                        }
+                        else
+                        {
+                            attackUsed = "punch";
+
+                            int seed = new Random().Next(100);
+                            if (seed < criticalHitRate)
                             {
-                                attackUsed = "punch";
-
-                                int seed = new Random().Next(100);
-                                if (seed < criticalHitRate)
-                                {
-                                    // a Critical Hit!
-                                    damage = criticalHitDamage;
-                                    // response.Data.Log
-                                    //     .Add($"CRITIAL HIT!! {attacker.Name} punched {opponent.Name}"
-                                    //        + $" and dealed {criticalHitDamage} damage!");
-                                }
-                                else
-                                {
-                                    // punch attack
-                                    damage = new Random().Next(1, 6); // 1 to 5 damage
-                                }
-
-                                // do damage
-                                if (damage > 0)
-                                    opponent.HitPoints -= damage;
+                                // a Critical Hit!
+                                damage = criticalHitDamage;
+                                // response.Data.Log
+                                //     .Add($"CRITIAL HIT!! {attacker.Name} punched {opponent.Name}"
+                                //        + $" and dealed {criticalHitDamage} damage!");
                             }
                             else
                             {
-                                // skill attack
-                                var skill = attacker.Skills[new Random().Next(attacker.Skills.Count)];
-                                
-                                attackUsed = skill.Name;
-                                damage = DoSkillAttack(attacker, opponent, skill);
+                                // punch attack
+                                damage = new Random().Next(1, 6); // 1 to 5 damage
                             }
+
+                            // do damage
+                            if (damage > 0)
+                                opponent.HitPoints -= damage;
                         }
 
                         response.Data.Log
@@ -127,22 +119,22 @@ namespace dotnet_rpg.Services.FightService
                             attacker.Victories++;
                             opponent.Defeats++;
 
-                            gameoverMessage += $"{opponent.Name} has been defeated!";
-                            gameoverMessage += $" {attacker.Name} wins with {attacker.HitPoints} HP left!";
+                            gameoverMessage.Add($"{opponent.Name} has been defeated!");
+                            gameoverMessage.Add($"{attacker.Name} wins with {attacker.HitPoints} HP left!");
                             break;
                         }
                         // Single attack finishes
                     }
-                    
+
                     // Round ends
                     response.Data.Log.Add("Round ends.");
-                    response.Data.Log.Add(String.Join(" ", characters.Select(c => 
+                    response.Data.Log.Add(String.Join(" ", characters.Select(c =>
                         $"{c.HitPoints}"
                     )));
                     response.Data.Log.Add("-----------------------------------------------------");
                 }
                 // Someone has been defeated
-                response.Data.Log.Add(gameoverMessage);
+                response.Data.Log.AddRange(gameoverMessage);
 
                 characters.ForEach(c =>
                 {
