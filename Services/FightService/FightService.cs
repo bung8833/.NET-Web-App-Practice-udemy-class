@@ -22,7 +22,7 @@ namespace dotnet_rpg.Services.FightService
                 Data = new FightResultDto()
             };
 
-            int criticalHitRate = request.criticalHitRate; // in percents
+            int criticalHitRate = request.criticalHitRate; // percentage
             int criticalHitDamage = request.criticalHitDamage;
 
             try

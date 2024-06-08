@@ -10,14 +10,14 @@ namespace dotnet_rpg.Dtos.Fight
         public string CharacterIds { get; set; } = "";
 
         [DefaultValue(80)]
-        public int UseWeaponRateForKnights { get; set; }
+        public int UseWeaponRateForKnights { get; set; } // percentage
         [DefaultValue(35)]
-        public int UseWeaponRateForMages { get; set; }
+        public int UseWeaponRateForMages { get; set; } // percentage
         [DefaultValue(10)]
-        public int UseWeaponRateForClerics { get; set; }
+        public int UseWeaponRateForClerics { get; set; } // percentage
 
         [DefaultValue(10)]
-        public int criticalHitRate { get; set; } // in percents
+        public int criticalHitRate { get; set; } // percentage
         [DefaultValue(50)]
         public int criticalHitDamage { get; set; }
 

@@ -10,6 +10,7 @@ namespace dotnet_rpg.Models
         public int Id { get; set; }
         public string Name { get; set; } = String.Empty;
         public int Damage { get; set; }
+        public int SkillActivationRate { get; set; } // percentage
         public List<Character>? Characters { get; set; }
     }
 }
