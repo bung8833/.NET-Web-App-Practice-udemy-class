@@ -22,8 +22,8 @@ namespace dotnet_rpg.Services.FightService
                 Data = new FightResultDto()
             };
 
-            int criticalHitRate = 20; // in percent
-            int criticalHitDamage = 30;
+            int criticalHitRate = request.criticalHitRate; // in percents
+            int criticalHitDamage = request.criticalHitDamage;
 
             try
             {
@@ -40,13 +40,12 @@ namespace dotnet_rpg.Services.FightService
                 }
 
                 int round = 1;
-                bool defeated = false;
-                List<string> attackResultMessage;
                 List<string> gameoverMessage = new List<string>();
                 int namePadding = characters.Max(c => c.Name.Length);
                 int weaponPadding = characters.Max(c => c.Weapon?.Name.Length ?? 5);
 
                 // Characters take turns to attack, until someone is defeated
+                bool defeated = false;
                 while (!defeated)
                 {
                     response.Data.Log.Add($"Round {round++}");
@@ -68,7 +67,7 @@ namespace dotnet_rpg.Services.FightService
 
                         int damage = 0;
                         string attackUsed = string.Empty;
-                        attackResultMessage = new List<string>();
+                        var attackResultMessage = new List<string>();
 
                         // decide attack type
                         bool useWeapon = new Random().Next(100) < useWeaponRate;
@@ -96,9 +95,8 @@ namespace dotnet_rpg.Services.FightService
                             {
                                 // a Critical Hit!
                                 damage = criticalHitDamage;
-                                // response.Data.Log
-                                //     .Add($"CRITIAL HIT!! {attacker.Name} punched {opponent.Name}"
-                                //        + $" and dealed {criticalHitDamage} damage!");
+                                attackResultMessage.Add($"CRITIAL HIT!! {attacker.Name} gave {opponent.Name} a nice punch"
+                                    + $", dealing {criticalHitDamage} damage!");
                             }
                             else
                             {
@@ -107,22 +105,28 @@ namespace dotnet_rpg.Services.FightService
                             }
 
                             // do damage
-                            if (damage > 0)
-                                opponent.HitPoints -= damage;
+                            opponent.HitPoints -= damage;
                         }
 
                         if (attackResultMessage.Count > 0)
                         {
                             response.Data.Log.AddRange(attackResultMessage);
                         }
-                        else
+                        else if (damage > 0)
                         {
-                            damage = damage < 0 ? 0 : damage;
-                            
                             response.Data.Log
                                 .Add($"{attacker.Name.PadRight(namePadding)} attacks {opponent.Name.PadRight(namePadding)}"
                                    + $" with {attackUsed.PadLeft(weaponPadding)},"
                                    + $" dealing {damage.ToString().PadLeft(2)} damage.");
+                        }
+                        else if (damage < 0)
+                        {
+                            response.Data.Log
+                                .Add($"{attacker.Name.PadRight(namePadding)} attacks {opponent.Name.PadRight(namePadding)}"
+                                   + $" with {attackUsed.PadLeft(weaponPadding)},");
+                            response.Data.Log
+                                .Add($"but {opponent.Name} defends and counter-attacks,"
+                                   + $" dealing {-damage} damage to {attacker.Name}!");
                         }
 
                         if (opponent.HitPoints <= 0)
@@ -144,7 +148,8 @@ namespace dotnet_rpg.Services.FightService
                     response.Data.Log.AddRange(new List<string>{"Round ends:"});
                     characters.ForEach(c =>
                     {
-                        response.Data.Log.Add($"           {c.Name.PadRight(namePadding)} {c.HitPoints} HP");
+                        response.Data.Log.Add($"           "
+                            + $"{c.Name.PadRight(namePadding)} {c.HitPoints} HP");
                     });
                     response.Data.Log.Add("-----------------------------------------------------");
                 }
@@ -282,7 +287,7 @@ namespace dotnet_rpg.Services.FightService
         private static int DoWeaponAttack(Character attacker, Character opponent)
         {
             // calculate damage
-            int damage = attacker.Weapon.Damage;
+            int damage = attacker.Weapon.Damage * attacker.Strength / opponent.Defense;
             // do damage
             if (damage > 0)
                 opponent.HitPoints -= damage;
@@ -293,7 +298,7 @@ namespace dotnet_rpg.Services.FightService
         private static int DoSkillAttack(Character attacker, Character opponent, Skill skill)
         {
             // calculate damage
-            int damage = skill.Damage;
+            int damage = skill.Damage * attacker.Intelligent / opponent.Defense;
             // do damage
             if (damage > 0)
                 opponent.HitPoints -= damage;

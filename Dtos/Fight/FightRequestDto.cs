@@ -7,13 +7,19 @@ namespace dotnet_rpg.Dtos.Fight
     public class FightRequestDto
     {
         [DefaultValue("4, 5, 11")]
-        public string CharacterIds { get; set; } = "4, 5, 11";
+        public string CharacterIds { get; set; } = "";
+
         [DefaultValue(80)]
-        public int UseWeaponRateForKnights { get; set; } = 80;
+        public int UseWeaponRateForKnights { get; set; }
         [DefaultValue(35)]
-        public int UseWeaponRateForMages { get; set; } = 35;
+        public int UseWeaponRateForMages { get; set; }
         [DefaultValue(10)]
-        public int UseWeaponRateForClerics { get; set; } = 10;
+        public int UseWeaponRateForClerics { get; set; }
+
+        [DefaultValue(10)]
+        public int criticalHitRate { get; set; } // in percents
+        [DefaultValue(50)]
+        public int criticalHitDamage { get; set; }
 
         public List<int> GetCharacterIds()
         {
