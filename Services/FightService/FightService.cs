@@ -41,7 +41,10 @@ namespace dotnet_rpg.Services.FightService
 
                 int round = 1;
                 bool defeated = false;
+                List<string> attackResultMessage;
                 List<string> gameoverMessage = new List<string>();
+                int namePadding = characters.Max(c => c.Name.Length);
+                int weaponPadding = characters.Max(c => c.Weapon?.Name.Length ?? 5);
 
                 // Characters take turns to attack, until someone is defeated
                 while (!defeated)
@@ -65,10 +68,11 @@ namespace dotnet_rpg.Services.FightService
 
                         int damage = 0;
                         string attackUsed = string.Empty;
+                        attackResultMessage = new List<string>();
 
                         // decide attack type
                         bool useWeapon = new Random().Next(100) < useWeaponRate;
-                        // todo refactor this to if-else
+
                         if (useWeapon && attacker.Weapon != null)
                         {
                             // weapon attack
@@ -107,9 +111,19 @@ namespace dotnet_rpg.Services.FightService
                                 opponent.HitPoints -= damage;
                         }
 
-                        response.Data.Log
-                            .Add($"{attacker.Name} attacks {opponent.Name} with {attackUsed},"
-                               + $" dealing {(damage >= 0 ? damage : 0)} damage.");
+                        if (attackResultMessage.Count > 0)
+                        {
+                            response.Data.Log.AddRange(attackResultMessage);
+                        }
+                        else
+                        {
+                            damage = damage < 0 ? 0 : damage;
+                            
+                            response.Data.Log
+                                .Add($"{attacker.Name.PadRight(namePadding)} attacks {opponent.Name.PadRight(namePadding)}"
+                                   + $" with {attackUsed.PadLeft(weaponPadding)},"
+                                   + $" dealing {damage.ToString().PadLeft(2)} damage.");
+                        }
 
                         if (opponent.HitPoints <= 0)
                         {
@@ -127,10 +141,11 @@ namespace dotnet_rpg.Services.FightService
                     }
 
                     // Round ends
-                    response.Data.Log.Add("Round ends.");
-                    response.Data.Log.Add(String.Join(" ", characters.Select(c =>
-                        $"{c.HitPoints}"
-                    )));
+                    response.Data.Log.AddRange(new List<string>{"Round ends:"});
+                    characters.ForEach(c =>
+                    {
+                        response.Data.Log.Add($"           {c.Name.PadRight(namePadding)} {c.HitPoints} HP");
+                    });
                     response.Data.Log.Add("-----------------------------------------------------");
                 }
                 // Someone has been defeated
