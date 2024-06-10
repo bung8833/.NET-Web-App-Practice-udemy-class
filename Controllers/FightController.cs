@@ -1,4 +1,5 @@
-﻿using dotnet_rpg.Dtos.Fight;
+﻿using dotnet_rpg.Dtos.Character;
+using dotnet_rpg.Dtos.Fight;
 using dotnet_rpg.Services.FightService;
 using Microsoft.AspNetCore.Mvc;
 
@@ -23,17 +24,27 @@ namespace dotnet_rpg.Controllers
         }
 
 
-        [HttpPost("Weapon")]
-        public async Task<ActionResult<ServiceResponse<AttackResultDto>>> WeaponAttack(WeaponAttackDto request)
+        [HttpPost("Simulate")]
+        public async Task<ActionResult<ServiceResponse<FightResultDto>>> Fights(FightRequestDto request, int times)
         {
-            return Ok(await _fightService.WeaponAttack(request));
+            if (times < 1)
+            {
+                return BadRequest("Times must be at least 1");
+            }
+
+            foreach (var time in Enumerable.Range(1, times - 1))
+            {
+                await _fightService.Fight(request);
+            }
+
+            return Ok(await _fightService.Fight(request));
         }
 
 
-        [HttpPost("Skill")]
-        public async Task<ActionResult<ServiceResponse<AttackResultDto>>> SkillAttack(SkillAttackDto request)
+        [HttpPut("Clear")]
+        public async Task<ActionResult<ServiceResponse<GetCharacterDto>>> ClearFightResults(List<int> characterIds)
         {
-            return Ok(await _fightService.SkillAttack(request));
+            return Ok(await _fightService.ClearFightResults(characterIds));
         }
     }
 }
