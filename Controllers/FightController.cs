@@ -1,4 +1,5 @@
-﻿using dotnet_rpg.Dtos.Character;
+﻿using Azure.Core;
+using dotnet_rpg.Dtos.Character;
 using dotnet_rpg.Dtos.Fight;
 using dotnet_rpg.Services.FightService;
 using Microsoft.AspNetCore.Mvc;
@@ -21,6 +22,13 @@ namespace dotnet_rpg.Controllers
         public async Task<ActionResult<ServiceResponse<FightResultDto>>> Fight(FightRequestDto request)
         {
             return Ok(await _fightService.Fight(request));
+        }
+
+
+        [HttpPost("DefaultFight")]
+        public async Task<ActionResult<ServiceResponse<FightResultDto>>> DefaultFight()
+        {
+            return Ok(await _fightService.Fight(new FightRequestDto()));
         }
 
 
