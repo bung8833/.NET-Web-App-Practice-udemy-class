@@ -39,13 +39,24 @@ namespace dotnet_rpg.Controllers
             {
                 return BadRequest("Times must be at least 1");
             }
+            // Time
+            var watch = System.Diagnostics.Stopwatch.StartNew();
 
             foreach (var time in Enumerable.Range(1, times - 1))
             {
                 await _fightService.Fight(request);
             }
+            var response = await _fightService.Fight(request);
 
-            return Ok(await _fightService.Fight(request));
+            watch.Stop();
+            var elapsedMs = watch.ElapsedMilliseconds;
+            int secs = (int)Math.Round(elapsedMs / 1000.0, 0, MidpointRounding.AwayFromZero);
+            double avg = Math.Round(1.0 * elapsedMs / times, 1, MidpointRounding.AwayFromZero);
+
+            response.Message += $"Fought {times} times in {secs} seconds"
+                + $", {avg}ms per fight in average.";
+
+            return Ok(response);
         }
 
 

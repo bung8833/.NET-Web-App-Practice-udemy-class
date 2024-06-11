@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Azure;
+using Azure.Identity;
 using dotnet_rpg.Data;
 using dotnet_rpg.Dtos.Character;
 using dotnet_rpg.Dtos.Fight;
@@ -27,9 +28,7 @@ namespace dotnet_rpg.Services.FightService
                 Data = new FightResultDto()
             };
 
-            int criticalHitRate = request.criticalHitRate; // percentage
-            int criticalHitDamage = request.criticalHitDamage;
-
+            //await ClearFightResults(request.GetCharacterIds());
             try
             {
                 var characters = await _context.Characters
@@ -43,21 +42,27 @@ namespace dotnet_rpg.Services.FightService
                     response.Message = "Not enough characters to fight!";
                     return response;
                 }
-                // await ClearFightResults(request.GetCharacterIds());
 
-                // random attack order
-                characters = characters.OrderBy(c => Guid.NewGuid()).ToList();
+                // all attack at same time
+                // this is just for showing the fight log, not real attack order
+                characters = characters.OrderBy(c => c.Class).ThenBy(c => c.Name).ToList();
 
-                Dictionary<int, int> characterHealths = new Dictionary<int, int>();
-                characters.ForEach(c => characterHealths.Add(c.Id, c.HitPoints));
+                Dictionary<int, int> characterHealths 
+                    = characters.ToDictionary(c => c.Id, c => c.HitPoints);
 
+                Dictionary<RpgClass, int> useWeaponRates = new Dictionary<RpgClass, int>
+                {
+                    { RpgClass.Knight, request.UseWeaponRateForKnights },
+                    { RpgClass.Mage, request.UseWeaponRateForMages },
+                    { RpgClass.Cleric, request.UseWeaponRateForClerics }
+                };
+                
                 int round = 1;
                 List<Character> winners = new();
                 int winnerHP = -1;
                 List<Character> losers = new();
-                List<string> gameoverMessage = new List<string>();
 
-                // Characters take turns to attack, until someone is defeated
+                // Each round Characters randomly attack others, until someone is defeated
                 bool defeated = false;
                 while (!defeated)
                 {
@@ -67,37 +72,46 @@ namespace dotnet_rpg.Services.FightService
                     foreach (var attacker in characters)
                     {
                         // a single attack
-                        var characterClass = attacker.Class;
-                        var useWeaponRate = characterClass switch
-                        {
-                            RpgClass.Knight => request.UseWeaponRateForKnights,
-                            RpgClass.Mage => request.UseWeaponRateForMages,
-                            _ => request.UseWeaponRateForClerics
-                        };
+                        var useWeaponRate = useWeaponRates[attacker.Class];
 
                         var opponents = characters.Where(c => c.Id != attacker.Id).ToList();
-                        var opponent = opponents[new Random().Next(opponents.Count)];
+                        var opponent = opponents[new Random(Guid.NewGuid().GetHashCode()).Next(opponents.Count)];
 
                         var attackResultMessage = new List<string>();
 
                         // decide attack type
-                        bool useWeapon = new Random().Next(100) < useWeaponRate;
+                        bool useWeapon = new Random(Guid.NewGuid().GetHashCode()).Next(100) < useWeaponRate;
 
                         if (useWeapon && attacker.Weapon != null)
                         {
-                            // weapon attack
+                            // use weapon
                             DoWeaponAttack(attacker, opponent, ref attackResultMessage);
                         }
                         else if (attacker.Skills != null && attacker.Skills.Any())
                         {
-                            // skill attack
+                            // use skill
                             Skill skill = GetRandomSkill(attacker.Skills);
-
-                            DoSkillAttack(attacker, opponent, skill, ref attackResultMessage);
+                            // todo implement skill healing method
+                            // todo implement skilltypes
+                            if (skill.Name == "Heal")
+                            {
+                                int heal = Math.Abs(skill.Damage);
+                                attacker.HitPoints += heal;
+                                attackResultMessage
+                                    .Add($"{attacker.Name} uses {skill.Name} to heal themselves,"
+                                       + $" restoring {heal} HP.");
+                            }
+                            else
+                            {
+                                DoSkillAttack(attacker, opponent, skill, ref attackResultMessage);
+                            }
                         }
                         else
                         {
-                            Punch(attacker, opponent, criticalHitRate, criticalHitDamage, ref attackResultMessage);
+                            // has no weapon or skill, use punch
+                            Punch(attacker, opponent, 
+                                request.criticalHitRate, request.criticalHitDamage, 
+                                ref attackResultMessage);
                         }
 
                         // Record single attack result
@@ -124,7 +138,7 @@ namespace dotnet_rpg.Services.FightService
                     characters.ForEach(c =>
                     {
                         response.Data.Log.Add($"           "
-                            + $"{c.Name} {c.HitPoints} HP");
+                            + $"{c.Name.PadRight(10)} {c.HitPoints.ToString().PadLeft(3)} HP");
                     });
                     response.Data.Log.Add("-----------------------------------------------------");
                 }
@@ -134,9 +148,8 @@ namespace dotnet_rpg.Services.FightService
                 losers.ForEach(l => l.Defeats++);
                 string loserNames = string.Join(", ", losers.Select(l => l.Name));
 
-                gameoverMessage.Add($"{loserNames} has been defeated!");
-                gameoverMessage.Add($"{winnerNames} wins with {winnerHP} HP left!");
-                response.Data.Log.AddRange(gameoverMessage);
+                response.Data.Log.Add($"{loserNames} has been defeated!");
+                response.Data.Log.Add($"{winnerNames} wins with {winnerHP} HP left!");
 
                 characters.ForEach(c =>
                 {
@@ -153,7 +166,7 @@ namespace dotnet_rpg.Services.FightService
                 response.Success = false;
                 response.Message = ex.Message;
             }
-
+            
             return response;
         }
 
@@ -191,7 +204,7 @@ namespace dotnet_rpg.Services.FightService
 
         private static Skill GetRandomSkill(List<Skill> skills)
         {
-            int randomNum = new Random().Next(skills.Sum(s => s.SkillActivationRate));
+            int randomNum = new Random(Guid.NewGuid().GetHashCode()).Next(skills.Sum(s => s.SkillActivationRate));
             Skill randomSkill = new Skill();
 
             foreach (var skill in skills)
@@ -250,7 +263,7 @@ namespace dotnet_rpg.Services.FightService
             if (opponent.Strength > attacker.Strength)
             {
                 int diff = opponent.Strength - attacker.Strength;
-                counterAttack = new Random()
+                counterAttack = new Random(Guid.NewGuid().GetHashCode())
                     .Next(opponent.Strength * opponent.Strength) < diff * diff;
             }
             // do damage
@@ -275,7 +288,7 @@ namespace dotnet_rpg.Services.FightService
             return damage;
         }
 
-        // todo implement heal
+        
         private static int DoSkillAttack(Character attacker, Character opponent, Skill skill,
             ref List<string> attackResultMessage)
         {
@@ -288,7 +301,7 @@ namespace dotnet_rpg.Services.FightService
             if (opponent.Intelligent > attacker.Intelligent)
             {
                 int diff = opponent.Intelligent - attacker.Intelligent;
-                counterAttack = new Random()
+                counterAttack = new Random(Guid.NewGuid().GetHashCode())
                     .Next(opponent.Intelligent * opponent.Intelligent) < diff * diff;
             }
             // do damage
@@ -320,7 +333,7 @@ namespace dotnet_rpg.Services.FightService
         {
             int damage = 0;
 
-            Random rand = new Random();
+            Random rand = new Random(Guid.NewGuid().GetHashCode());
             int critical = rand.Next(100);
             int onePun = rand.Next(100);
             int regular = rand.Next(1, 6);
