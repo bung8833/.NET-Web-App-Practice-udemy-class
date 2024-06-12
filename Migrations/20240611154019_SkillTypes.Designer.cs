@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using dotnet_rpg.Data;
 
@@ -11,9 +12,11 @@ using dotnet_rpg.Data;
 namespace dotnetrpg.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20240611154019_SkillTypes")]
+    partial class SkillTypes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -94,12 +97,6 @@ namespace dotnetrpg.Migrations
                     b.Property<int>("Damage")
                         .HasColumnType("int");
 
-                    b.Property<int>("Heal")
-                        .HasColumnType("int");
-
-                    b.Property<int>("LifeLeechPercentage")
-                        .HasColumnType("int");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -119,8 +116,6 @@ namespace dotnetrpg.Migrations
                         {
                             Id = 1,
                             Damage = 30,
-                            Heal = 0,
-                            LifeLeechPercentage = 0,
                             Name = "Fireball",
                             SkillActivationRate = 0,
                             Type = 0
@@ -129,8 +124,6 @@ namespace dotnetrpg.Migrations
                         {
                             Id = 2,
                             Damage = 20,
-                            Heal = 0,
-                            LifeLeechPercentage = 0,
                             Name = "Frenzy",
                             SkillActivationRate = 0,
                             Type = 0
@@ -139,8 +132,6 @@ namespace dotnetrpg.Migrations
                         {
                             Id = 3,
                             Damage = 50,
-                            Heal = 0,
-                            LifeLeechPercentage = 0,
                             Name = "Blizzard",
                             SkillActivationRate = 0,
                             Type = 0

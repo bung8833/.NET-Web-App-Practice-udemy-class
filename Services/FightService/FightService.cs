@@ -75,12 +75,12 @@ namespace dotnet_rpg.Services.FightService
                         var useWeaponRate = useWeaponRates[attacker.Class];
 
                         var opponents = characters.Where(c => c.Id != attacker.Id).ToList();
-                        var opponent = opponents[new Random(Guid.NewGuid().GetHashCode()).Next(opponents.Count)];
+                        var opponent = opponents[new Random().Next(opponents.Count)];
 
                         var attackResultMessage = new List<string>();
 
                         // decide attack type
-                        bool useWeapon = new Random(Guid.NewGuid().GetHashCode()).Next(100) < useWeaponRate;
+                        bool useWeapon = new Random().Next(100) < useWeaponRate;
 
                         if (useWeapon && attacker.Weapon != null)
                         {
@@ -91,19 +91,18 @@ namespace dotnet_rpg.Services.FightService
                         {
                             // use skill
                             Skill skill = GetRandomSkill(attacker.Skills);
-                            // todo implement skill healing method
-                            // todo implement skilltypes
-                            if (skill.Name == "Heal")
-                            {
-                                int heal = Math.Abs(skill.Damage);
-                                attacker.HitPoints += heal;
-                                attackResultMessage
-                                    .Add($"{attacker.Name} uses {skill.Name} to heal themselves,"
-                                       + $" restoring {heal} HP.");
-                            }
-                            else
+
+                            if (skill.Type == SkillType.Combat)
                             {
                                 DoSkillAttack(attacker, opponent, skill, ref attackResultMessage);
+                            }
+                            else if (skill.Type == SkillType.Heal)
+                            {
+                                Heal(attacker, skill, ref attackResultMessage);
+                            }
+                            else if (skill.Type == SkillType.LifeLeech)
+                            {
+                                LifeLeech(attacker, opponent, skill, ref attackResultMessage);
                             }
                         }
                         else
@@ -170,7 +169,7 @@ namespace dotnet_rpg.Services.FightService
             return response;
         }
 
-
+        
         private static void GetWinnersByHPRatio(List<Character> characters, Dictionary<int, int> characterHealths,
             out List<Character> winners, out int winnerHPPercents)
         {
@@ -250,7 +249,7 @@ namespace dotnet_rpg.Services.FightService
             return response;
         }
 
-        
+
         private static int DoWeaponAttack(Character attacker, Character opponent,
             ref List<string> attackResultMessage)
         {
@@ -325,6 +324,27 @@ namespace dotnet_rpg.Services.FightService
                        + $" dealing {damage} damage to {attacker.Name}!");
             }
             return damage;
+        }
+
+
+        private static void Heal(Character user, Skill skill, ref List<string> attackResultMessage)
+        {
+            user.HitPoints += skill.Heal;
+            attackResultMessage
+                .Add($"{user.Name} uses {skill.Name} to heal themselves,"
+                   + $" restoring {skill.Heal} HP.");
+        }
+
+
+        private static void LifeLeech(Character attacker, Character opponent, Skill skill,
+            ref List<string> attackResultMessage)
+        {
+            int leech = (int)Math.Round(opponent.HitPoints * skill.LifeLeechPercentage / 100.0, 0, MidpointRounding.AwayFromZero);
+            opponent.HitPoints -= leech;
+            attacker.HitPoints += leech;
+            attackResultMessage
+                .Add($"{attacker.Name} attacks {opponent.Name}"
+                   + $" with {skill.Name}, draining and restoring {leech} HP!");
         }
 
 
