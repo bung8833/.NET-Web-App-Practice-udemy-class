@@ -33,6 +33,9 @@ builder.Services.AddSwaggerGen(c => {
 });
 builder.Services.AddAutoMapper(typeof(Program).Assembly);
 
+// Interfaces
+builder.Services.AddScoped<IFigure, Character>();
+builder.Services.AddScoped<IFigure, Fighter>();
 // Interfaces of Repositories
 builder.Services.AddScoped<ICharacterRepository, CharacterRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
