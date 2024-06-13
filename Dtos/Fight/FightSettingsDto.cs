@@ -4,7 +4,8 @@ namespace dotnet_rpg.Dtos.Fight
 {
     public class FightSettingsDto
     {
-        public int criticalHitRate { get; set; } = 15; // percentage
-        public int criticalHitDamage { get; set; } = 40;
+        public int criticalPunchRate { get; set; } = 25; // percentage
+        public int criticalPunchDamage { get; set; } = 50;
+        public int onePunchRate { get; set; } = 75; // percentage
     }
 }

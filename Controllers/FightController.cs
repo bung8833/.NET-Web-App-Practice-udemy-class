@@ -1,8 +1,11 @@
-﻿using Azure.Core;
+﻿using Azure;
+using Azure.Core;
+using dotnet_rpg.Data;
 using dotnet_rpg.Dtos.Character;
 using dotnet_rpg.Dtos.Fight;
 using dotnet_rpg.Services.FightService;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace dotnet_rpg.Controllers
 {
@@ -11,10 +14,12 @@ namespace dotnet_rpg.Controllers
     public class FightController : ControllerBase
     {
         private readonly IFightService _fightService;
+        private readonly DataContext _context;
 
-        public FightController(IFightService fightService)
+        public FightController(IFightService fightService, DataContext dataContext)
         {
             _fightService = fightService;
+            _context = dataContext;
         }
 
 
@@ -33,28 +38,85 @@ namespace dotnet_rpg.Controllers
 
 
         [HttpPost("Simulate")]
-        public async Task<ActionResult<ServiceResponse<FightResultDto>>> Fights(FightRequestDto request, int times)
+        public async Task<ActionResult<ServiceResponse<List<string>>>> Fights(FightRequestDto request, int times)
         {
+            var response = new ServiceResponse<List<string>>();
+
             if (times < 1)
             {
                 return BadRequest("Times must be at least 1");
             }
+
+            var characters = await _context.Characters
+                    .Include(c => c.Weapon)
+                    .Include(c => c.Skills)
+                    .Where(c => request.GetCharacterIds().Contains(c.Id))
+                    .ToListAsync();
+            if (characters.Count < 2)
+            {
+                response.Success = false;
+                response.Message = "Not enough characters to fight!";
+                return response;
+            }
+
+            Dictionary<RpgClass, int> useWeaponRates = new Dictionary<RpgClass, int>
+                {
+                    { RpgClass.Knight, request.UseWeaponRateForKnights },
+                    { RpgClass.Mage, request.UseWeaponRateForMages },
+                    { RpgClass.Cleric, request.UseWeaponRateForClerics }
+                };
+
+            List<Fighter> fighters = characters.Select(c => new Fighter
+            {
+                Id = c.Id,
+                Name = c.Name,
+                HP = c.HP,
+                MaxHP = c.HP,
+                HPToChange = 0,
+                Strength = c.Strength,
+                Defense = c.Defense,
+                Intelligence = c.Intelligence,
+                Class = c.Class,
+                Weapon = c.Weapon,
+                UseWeaponRate = useWeaponRates[c.Class],
+                Skills = c.Skills,
+                character = c,
+            }).ToList();
+
+            FightSettingsDto settings = new FightSettingsDto
+            {
+                criticalPunchRate = request.criticalPunchRate,
+                criticalPunchDamage = request.criticalPunchDamage,
+            };
+            // this is just for showing the fight log, not real attack order
+            fighters = fighters.OrderBy(c => c.Class).ThenBy(c => c.Name).ToList();
+
             // Time
             var watch = System.Diagnostics.Stopwatch.StartNew();
-
-            foreach (var time in Enumerable.Range(1, times - 1))
+            foreach (var time in Enumerable.Range(1, times))
             {
-                await _fightService.Fight(request);
+                _fightService.DoFight(ref fighters, settings);
             }
-            var response = await _fightService.Fight(request);
-
             watch.Stop();
-            var elapsedMs = watch.ElapsedMilliseconds;
-            int secs = (int)Math.Round(elapsedMs / 1000.0, 0, MidpointRounding.AwayFromZero);
-            double avg = Math.Round(1.0 * elapsedMs / times, 1, MidpointRounding.AwayFromZero);
 
+            var elapsedMs = watch.ElapsedMilliseconds;
+            double secs = Math.Round(elapsedMs / 1000.0, 1, MidpointRounding.AwayFromZero);
+            double avg = Math.Round(1.0 * elapsedMs / times, 3, MidpointRounding.AwayFromZero);
             response.Message += $"Fought {times} times in {secs} seconds"
                 + $", {avg}ms per fight in average.";
+
+            // show stats
+            List<string> stats = new List<string>();
+            int winRate = -1;
+            int loseRate = -1;
+            foreach (var fighter in fighters)
+            {
+                winRate = (int)Math.Round(100.0 * fighter.Victories / fighter.Fights, 0, MidpointRounding.AwayFromZero);
+                loseRate = (int)Math.Round(100.0 * fighter.Defeats / fighter.Fights, 0, MidpointRounding.AwayFromZero);
+
+                stats.Add($"{fighter.Name.PadRight(10)}: {winRate.ToString().PadLeft(2)}% win rate, {loseRate.ToString().PadLeft(2)}% lose rate");
+            }   
+            response.Data = stats;
 
             return Ok(response);
         }

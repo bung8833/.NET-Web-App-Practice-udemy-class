@@ -16,10 +16,12 @@ namespace dotnet_rpg.Dtos.Fight
         [DefaultValue(50)]
         public int UseWeaponRateForClerics { get; set; } = 50; // percentage
 
-        [DefaultValue(10)]
-        public int criticalHitRate { get; set; } = 10; // percentage
+        [DefaultValue(25)]
+        public int criticalPunchRate { get; set; } = 25; // percentage
         [DefaultValue(50)]
-        public int criticalHitDamage { get; set; } = 40;
+        public int criticalPunchDamage { get; set; } = 50;
+        [DefaultValue(75)]
+        public int onePunchRate { get; set; } = 75; // percentage
 
         public List<int> GetCharacterIds()
         {

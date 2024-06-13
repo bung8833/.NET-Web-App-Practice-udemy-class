@@ -69,8 +69,9 @@ namespace dotnet_rpg.Services.FightService
 
                 FightSettingsDto settings = new FightSettingsDto
                 {
-                    criticalHitRate = request.criticalHitRate,
-                    criticalHitDamage = request.criticalHitDamage,
+                    criticalPunchRate = request.criticalPunchRate,
+                    criticalPunchDamage = request.criticalPunchDamage,
+                    onePunchRate = request.onePunchRate,
                 };
                 // this is just for showing the fight log, not real attack order
                 fighters = fighters.OrderBy(c => c.Class).ThenBy(c => c.Name).ToList();
@@ -155,7 +156,7 @@ namespace dotnet_rpg.Services.FightService
                     {
                         // has no weapon or skill, use punch
                         Punch(attacker, opponent,
-                            settings.criticalHitRate, settings.criticalHitDamage,
+                            settings.criticalPunchRate, settings.criticalPunchDamage, settings.onePunchRate,
                             ref attackResultMessage);
                     }
 
@@ -369,8 +370,8 @@ namespace dotnet_rpg.Services.FightService
         }
 
 
-        private static int Punch(Fighter attacker, Fighter opponent, int criticalHitRate,
-            int criticalHitDamage, ref List<string> attackResultMessage)
+        private static int Punch(Fighter attacker, Fighter opponent, int criticalPunchRate,
+            int criticalPunchDamage, int onePunchRate, ref List<string> attackResultMessage)
         {
             int damage = 0;
 
@@ -379,14 +380,14 @@ namespace dotnet_rpg.Services.FightService
             int onePun = rand.Next(100);
             int regular = rand.Next(1, 6);
 
-            if (critical < criticalHitRate)
+            if (critical < criticalPunchRate)
             {
                 // a Critical Hit!
-                damage = criticalHitDamage;
+                damage = criticalPunchDamage;
                 attackResultMessage.Add($"    CRITIAL HIT!! {attacker.Name} gives {opponent.Name} a solid punch"
-                      + $", dealing {criticalHitDamage} damage!!");
+                      + $", dealing {criticalPunchDamage} damage!!");
             }
-            else if (opponent.HP < 10 && onePun < 50)
+            else if (opponent.HP < 10 && onePun < onePunchRate)
             {
                 // 尾刀
                 damage = opponent.HP;
