@@ -89,7 +89,7 @@ namespace dotnet_rpg.Controllers
                 criticalPunchDamage = request.criticalPunchDamage,
             };
             // this is just for showing the fight log, not real attack order
-            fighters = fighters.OrderBy(c => c.Class).ThenBy(c => c.Name).ToList();
+            fighters = fighters.OrderBy(c => c.Id).ToList();
 
             // Time
             var watch = System.Diagnostics.Stopwatch.StartNew();
@@ -100,8 +100,8 @@ namespace dotnet_rpg.Controllers
             watch.Stop();
 
             var elapsedMs = watch.ElapsedMilliseconds;
-            double secs = Math.Round(elapsedMs / 1000.0, 1, MidpointRounding.AwayFromZero);
-            double avg = Math.Round(1.0 * elapsedMs / times, 3, MidpointRounding.AwayFromZero);
+            decimal secs = Math.Round((decimal)elapsedMs / 1000, 1, MidpointRounding.AwayFromZero);
+            decimal avg = Math.Round((decimal)elapsedMs / times, 2, MidpointRounding.AwayFromZero);
             response.Message += $"Fought {times} times in {secs} seconds"
                 + $", {avg}ms per fight in average.";
 

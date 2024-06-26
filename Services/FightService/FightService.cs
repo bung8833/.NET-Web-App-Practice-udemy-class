@@ -65,6 +65,9 @@ namespace dotnet_rpg.Services.FightService
                     UseWeaponRate = useWeaponRates[c.Class],
                     Skills = c.Skills,
                     character = c,
+                    Fights = 0,
+                    Victories = 0,
+                    Defeats = 0
                 }).ToList();
 
                 FightSettingsDto settings = new FightSettingsDto
@@ -74,7 +77,7 @@ namespace dotnet_rpg.Services.FightService
                     onePunchRate = request.onePunchRate,
                 };
                 // this is just for showing the fight log, not real attack order
-                fighters = fighters.OrderBy(c => c.Class).ThenBy(c => c.Name).ToList();
+                fighters = fighters.OrderBy(c => c.Id).ToList();
 
                 // main logic
                 response.Data.Log = DoFight(ref fighters, settings);
@@ -169,7 +172,7 @@ namespace dotnet_rpg.Services.FightService
                 // Round ends
                 // set HP correctly after all attacks
                 fighters.ForEach(c => {
-                    c.HP = c.HP + c.HPToChange;
+                    c.HP += c.HPToChange;
                     c.HPToChange = 0;
                 });
 
@@ -378,7 +381,7 @@ namespace dotnet_rpg.Services.FightService
             Random rand = new Random(Guid.NewGuid().GetHashCode());
             int critical = rand.Next(100);
             int onePun = rand.Next(100);
-            int regular = rand.Next(1, 6);
+            int regular = rand.Next(1, 10);
 
             if (critical < criticalPunchRate)
             {
@@ -387,7 +390,7 @@ namespace dotnet_rpg.Services.FightService
                 attackResultMessage.Add($"    CRITIAL HIT!! {attacker.Name} gives {opponent.Name} a solid punch"
                       + $", dealing {criticalPunchDamage} damage!!");
             }
-            else if (opponent.HP < 10 && onePun < onePunchRate)
+            else if (opponent.HP < 25 && onePun < onePunchRate)
             {
                 // 尾刀
                 damage = opponent.HP;
