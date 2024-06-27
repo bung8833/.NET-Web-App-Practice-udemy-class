@@ -56,7 +56,9 @@ namespace dotnet_rpg.Services.FightService
                     Name = c.Name,
                     HP = c.HP,
                     MaxHP = c.HP,
-                    HPToChange = 0,
+                    DamageReceived = 0,
+                    Healed = 0,
+                    SkillUsed = null,
                     Strength = c.Strength,
                     Defense = c.Defense,
                     Intelligence = c.Intelligence,
@@ -67,7 +69,7 @@ namespace dotnet_rpg.Services.FightService
                     character = c,
                     Fights = 0,
                     Victories = 0,
-                    Defeats = 0
+                    Defeats = 0,
                 }).ToList();
 
                 FightSettingsDto settings = new FightSettingsDto
@@ -123,6 +125,7 @@ namespace dotnet_rpg.Services.FightService
                 foreach (var attacker in fighters)
                 {
                     // a single attack
+                    attacker.SkillUsed = null;
 
                     var opponents = fighters.Where(c => c.Id != attacker.Id).ToList();
                     var opponent = opponents[new Random().Next(opponents.Count)];
@@ -141,6 +144,7 @@ namespace dotnet_rpg.Services.FightService
                     {
                         // use skill
                         Skill skill = GetRandomSkill(attacker.Skills);
+                        attacker.SkillUsed = skill;
 
                         if (skill.Type == SkillType.Combat)
                         {
@@ -172,20 +176,31 @@ namespace dotnet_rpg.Services.FightService
                 // Round ends
                 // set HP correctly after all attacks
                 fighters.ForEach(c => {
-                    c.HP += c.HPToChange;
-                    c.HPToChange = 0;
+                    int damageReductionPercentage = c.SkillUsed == null ? 0 : c.SkillUsed.DamageReductionPercentage;
+                    int realDmg = (int)Math.Round(c.DamageReceived * (100 - damageReductionPercentage)/100.0, 0, MidpointRounding.AwayFromZero);
+                    c.HP -= realDmg;
+                    c.HP += c.Healed;
+
+                    c.DamageReceived = 0;
+                    c.Healed = 0;
                 });
 
                 // check if someone has been defeated
                 var deads = fighters.Where(c => c.HP <= 0).ToList();
-                if (deads.Count > 0)
-                {
-                    defeated = true;
-                    deads.ForEach(d =>
-                    {
+                // check if revive
+                deads.ForEach(d => {
+                    if (d.SkillUsed != null && d.SkillUsed.Revive) {
+                        Revive(d, ref log);
+                    }
+                    else {
                         d.HP = 0;
                         losers.Add(d);
-                    });
+                    }
+                });
+
+                if (losers.Count > 0)
+                {
+                    defeated = true;
                     GetWinnersByHP(fighters, out winners, out winnerHP);
                 }
                 // Record Round results
@@ -276,7 +291,7 @@ namespace dotnet_rpg.Services.FightService
 
 
         private static int DoWeaponAttack(Fighter attacker, Fighter opponent,
-            ref List<string> attackResultMessage)
+            ref List<string> message)
         {
             bool counterAttack = false;
             // calculate damage
@@ -293,19 +308,19 @@ namespace dotnet_rpg.Services.FightService
             // do damage
             if (!counterAttack)
             {
-                opponent.HPToChange -= damage;
-                attackResultMessage
+                opponent.DamageReceived += damage;
+                message
                     .Add($"{attacker.Name} attacks {opponent.Name}"
                        + $" with {attacker.Weapon.Name},"
                        + $" dealing {damage} damage.");
             }
             else
             {
-                attacker.HPToChange -= damage;
-                attackResultMessage
+                attacker.DamageReceived += damage;
+                message
                     .Add($"{attacker.Name} attacks {opponent.Name}"
                        + $" with {attacker.Weapon.Name},");
-                attackResultMessage
+                message
                     .Add($"    but {opponent.Name} defends and counter-attacks,"
                        + $" dealing {damage} damage to {attacker.Name}!");
             }
@@ -314,7 +329,7 @@ namespace dotnet_rpg.Services.FightService
 
 
         private static int DoSkillAttack(Fighter attacker, Fighter opponent, Skill skill,
-            ref List<string> attackResultMessage)
+            ref List<string> message)
         {
             bool counterAttack = false;
             // calculate damage
@@ -331,20 +346,20 @@ namespace dotnet_rpg.Services.FightService
             // do damage
             if (!counterAttack)
             {
-                opponent.HPToChange -= damage;
-                attackResultMessage
+                opponent.DamageReceived += damage;
+                message
                     .Add($"{attacker.Name} attacks {opponent.Name}"
                        + $" with {skill.Name},"
                        + $" dealing {damage} damage.");
             }
             else
             {
-                attacker.HPToChange -= damage;
-                attackResultMessage
+                attacker.DamageReceived += damage;
+                message
                     .Add($"{attacker.Name} attacks {opponent.Name}"
                        + $" with {skill.Name},");
 
-                attackResultMessage
+                message
                     .Add($"    but {opponent.Name} defends and counter-attacks,"
                        + $" dealing {damage} damage to {attacker.Name}!");
             }
@@ -352,24 +367,34 @@ namespace dotnet_rpg.Services.FightService
         }
 
 
-        private static void Heal(Fighter user, Skill skill, ref List<string> attackResultMessage)
+        private static void Heal(Fighter user, Skill skill, ref List<string> message)
         {
-            user.HPToChange += skill.Heal;
-            attackResultMessage
+            user.Healed += skill.Heal;
+            message
                 .Add($"{user.Name} uses {skill.Name} to heal themselves,"
                    + $" restoring {skill.Heal} HP.");
         }
 
 
         private static void LifeLeech(Fighter attacker, Fighter opponent, Skill skill,
-            ref List<string> attackResultMessage)
+            ref List<string> message)
         {
             int leech = (int)Math.Round(opponent.HP * skill.LifeLeechPercentage / 100.0, 0, MidpointRounding.AwayFromZero);
-            opponent.HPToChange -= leech;
-            attacker.HPToChange += leech;
-            attackResultMessage
+            opponent.DamageReceived += leech;
+            attacker.Healed += leech;
+            message
                 .Add($"{attacker.Name} attacks {opponent.Name}"
                    + $" with {skill.Name}, draining and restoring {leech} HP!");
+        }
+
+
+        private static void Revive(Fighter user, ref List<string> message)
+        {
+            user.HP = user.SkillUsed.Heal;
+            message.Add($"  -----------------------------------------");
+            message.Add($"  | {user.Name} reborns from fatal death       |");
+            message.Add($"  | with the help of the {user.SkillUsed.Name}!! |");
+            message.Add($"  -----------------------------------------");
         }
 
 
@@ -405,7 +430,7 @@ namespace dotnet_rpg.Services.FightService
                       + $", dealing {damage} damage.");
             }
             // do damage
-            opponent.HPToChange -= damage;
+            opponent.DamageReceived += damage;
 
             return damage;
         }

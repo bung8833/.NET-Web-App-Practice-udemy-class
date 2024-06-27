@@ -72,7 +72,9 @@ namespace dotnet_rpg.Controllers
                 Name = c.Name,
                 HP = c.HP,
                 MaxHP = c.HP,
-                HPToChange = 0,
+                DamageReceived = 0,
+                Healed = 0,
+                SkillUsed = null,
                 Strength = c.Strength,
                 Defense = c.Defense,
                 Intelligence = c.Intelligence,
@@ -81,6 +83,9 @@ namespace dotnet_rpg.Controllers
                 UseWeaponRate = useWeaponRates[c.Class],
                 Skills = c.Skills,
                 character = c,
+                Fights = 0,
+                Victories = 0,
+                Defeats = 0,
             }).ToList();
 
             FightSettingsDto settings = new FightSettingsDto
