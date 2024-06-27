@@ -7,6 +7,8 @@
         public int HP { get; set; } = 200;
         public int MaxHP { get; set; } = 200;
         public int HPToChange { get; set; } = 0;
+        public int DamageReductionPercentage { get; set; } = 0;
+        public bool Revive { get; set; } = false;
         public int Strength { get; set; } = 10;
         public int Defense { get; set; } = 10;
         public int Intelligence { get; set; } = 10;
