@@ -6,8 +6,8 @@ namespace dotnet_rpg.Dtos.Fight
 {
     public class FightRequestDto
     {
-        [DefaultValue("1, 2, 3, 11, 21, 22")]
-        public string CharacterIds { get; set; } = "1, 2, 3, 11, 21, 22";
+        [DefaultValue("1, 2, 3, 21, 22")]
+        public string CharacterIds { get; set; } = "1, 2, 3, 21, 22";
 
         [DefaultValue(70)]
         public int UseWeaponRateForKnights { get; set; } = 70; // percentage

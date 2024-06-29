@@ -1,4 +1,5 @@
-﻿using Azure;
+﻿using AutoMapper;
+using Azure;
 using Azure.Core;
 using dotnet_rpg.Data;
 using dotnet_rpg.Dtos.Character;
@@ -15,11 +16,13 @@ namespace dotnet_rpg.Controllers
     {
         private readonly IFightService _fightService;
         private readonly DataContext _context;
+        private readonly IMapper _mapper;
 
-        public FightController(IFightService fightService, DataContext dataContext)
+        public FightController(IFightService fightService, DataContext dataContext, IMapper mapper)
         {
             _fightService = fightService;
             _context = dataContext;
+            _mapper = mapper;
         }
 
 
@@ -66,27 +69,10 @@ namespace dotnet_rpg.Controllers
                     { RpgClass.Cleric, request.UseWeaponRateForClerics }
                 };
 
-            List<Fighter> fighters = characters.Select(c => new Fighter
-            {
-                Id = c.Id,
-                Name = c.Name,
-                HP = c.HP,
-                MaxHP = c.HP,
-                DamageReceived = 0,
-                Healed = 0,
-                SkillUsed = null,
-                Strength = c.Strength,
-                Defense = c.Defense,
-                Intelligence = c.Intelligence,
-                Class = c.Class,
-                Weapon = c.Weapon,
-                UseWeaponRate = useWeaponRates[c.Class],
-                Skills = c.Skills,
-                character = c,
-                Fights = 0,
-                Victories = 0,
-                Defeats = 0,
-            }).ToList();
+            // This mapping includes MaxHP, character
+            List<Fighter> fighters = _mapper.Map<List<Fighter>>(characters);
+            // Need to set UseWeaponRate
+            fighters.ForEach(f => f.UseWeaponRate = useWeaponRates[f.Class]);
 
             FightSettingsDto settings = new FightSettingsDto
             {

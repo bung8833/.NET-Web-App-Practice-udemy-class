@@ -50,27 +50,10 @@ namespace dotnet_rpg.Services.FightService
                     { RpgClass.Cleric, request.UseWeaponRateForClerics }
                 };
 
-                List<Fighter> fighters = characters.Select(c => new Fighter
-                {
-                    Id = c.Id,
-                    Name = c.Name,
-                    HP = c.HP,
-                    MaxHP = c.HP,
-                    DamageReceived = 0,
-                    Healed = 0,
-                    SkillUsed = null,
-                    Strength = c.Strength,
-                    Defense = c.Defense,
-                    Intelligence = c.Intelligence,
-                    Class = c.Class,
-                    Weapon = c.Weapon,
-                    UseWeaponRate = useWeaponRates[c.Class],
-                    Skills = c.Skills,
-                    character = c,
-                    Fights = 0,
-                    Victories = 0,
-                    Defeats = 0,
-                }).ToList();
+                // This mapping includes MaxHP, character
+                List<Fighter> fighters = _mapper.Map<List<Fighter>>(characters);
+                // Need to set UseWeaponRate
+                fighters.ForEach(f => f.UseWeaponRate = useWeaponRates[f.Class]);
 
                 FightSettingsDto settings = new FightSettingsDto
                 {
@@ -87,9 +70,9 @@ namespace dotnet_rpg.Services.FightService
                 // Update fight results for characters
                 fighters.ForEach(f =>
                 {
-                    f.character.Fights += f.Fights;
-                    f.character.Victories += f.Victories;
-                    f.character.Defeats += f.Defeats;
+                    f.character.Fights = f.Fights;
+                    f.character.Victories = f.Victories;
+                    f.character.Defeats = f.Defeats;
                 });
 
                 // Save fight results
